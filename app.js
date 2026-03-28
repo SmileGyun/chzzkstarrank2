@@ -770,6 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(match) {
                 match.status = 'approved';
                 processMatch(match.title, match.winnerId, match.loserId);
+                saveState();
                 alert('매치 결과가 승인되고 전적에 반영되었습니다.');
                 renderAdminDashboard();
             }
@@ -779,12 +780,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const match = pendingMatches.find(m => m.id === id);
             if(match) {
                 match.status = 'rejected';
+                saveState();
                 renderAdminDashboard();
             }
         }
         if (e.target.classList.contains('admin-match-delete')) {
             const id = e.target.getAttribute('data-id');
             pendingMatches = pendingMatches.filter(m => m.id !== id);
+            saveState();
             renderAdminDashboard();
         }
 
@@ -797,22 +800,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { status, recordStr, ...validUser } = user;
                 validUser.approvedAt = Date.now();
                 players.push(validUser);
+                pendingUsers = pendingUsers.filter(u => u.id !== id);
                 updateUI();
+                saveState();
                 alert(`유저 '${user.name}'님이 랭킹에 등록되었습니다.`);
                 renderAdminDashboard();
             }
         }
         if (e.target.classList.contains('admin-user-reject')) {
             const id = e.target.getAttribute('data-id');
-            const user = pendingUsers.find(u => u.id === id);
-            if(user) {
-                user.status = 'rejected';
-                renderAdminDashboard();
-            }
+            pendingUsers = pendingUsers.filter(u => u.id !== id);
+            saveState();
+            renderAdminDashboard();
         }
         if (e.target.classList.contains('admin-user-delete')) {
             const id = e.target.getAttribute('data-id');
             pendingUsers = pendingUsers.filter(u => u.id !== id);
+            saveState();
             renderAdminDashboard();
         }
 
@@ -828,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 p.win = parseInt(parent.querySelector('.p-win').value, 10) || 0;
                 p.loss = parseInt(parent.querySelector('.p-loss').value, 10) || 0;
                 updateUI();
+                saveState();
                 renderAdminDashboard();
                 alert('유저 데이터가 성공적으로 수정되었습니다.');
             }
@@ -837,6 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const id = e.target.getAttribute('data-id');
                 players = players.filter(x => x.id !== id);
                 updateUI();
+                saveState();
                 renderAdminDashboard();
                 alert('유저가 삭제되었습니다.');
             }
