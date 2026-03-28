@@ -293,11 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Determine Tier based on ranking
     function getTier(rating) {
-        if (rating >= 2200) return 'S';
-        if (rating >= 1900) return 'A';
-        if (rating >= 1700) return 'B';
-        if (rating >= 1500) return 'C';
-        if (rating >= 1200) return 'D';
+        if (rating >= 2140) return 'S';
+        if (rating >= 2010) return 'A';
+        if (rating >= 1750) return 'B';
+        if (rating >= 1600) return 'C';
+        if (rating >= 1300) return 'D';
         return 'E';
     }
 
