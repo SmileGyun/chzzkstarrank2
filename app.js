@@ -1,3 +1,19 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-VCW6uxyAq7od_Pn6RmRXQLMXwgEZce4",
+  authDomain: "chzzkstarrank2.firebaseapp.com",
+  projectId: "chzzkstarrank2",
+  storageBucket: "chzzkstarrank2.firebasestorage.app",
+  messagingSenderId: "562699734602",
+  appId: "1:562699734602:web:d620c22e90e5a9ef88a0b3",
+  measurementId: "G-R17QH907Y6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initial Data
     let defaultPlayers = [
@@ -31,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: '28', name: '카루하', race: 'Terran', rating: 1374, win: 0, loss: 0, prevRank: 28 },
         { id: '29', name: '시폰케이크', race: 'Protoss', rating: 1336, win: 0, loss: 0, prevRank: 29 },
         { id: '30', name: '비카Vika', race: 'Zerg', rating: 1298, win: 0, loss: 0, prevRank: 30 },
-        { id: '31', name: '양거북', race: 'Terran', rating: 1260, win: 0, loss: 0, prevRank: 31 },
+        { id: '31', name: '양거북', Terran: 'Terran', race: 'Terran', rating: 1260, win: 0, loss: 0, prevRank: 31 },
         { id: '32', name: '한초약', race: 'Terran', rating: 1222, win: 0, loss: 0, prevRank: 32 },
         { id: '33', name: '실키아', race: 'Zerg', rating: 1184, win: 0, loss: 0, prevRank: 33 },
         { id: '34', name: '캐스커', race: 'Protoss', rating: 1146, win: 0, loss: 0, prevRank: 34 },
@@ -41,19 +57,39 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: '38', name: '두두키', race: 'Zerg', rating: 1000, win: 0, loss: 0, prevRank: 38 }
     ];
 
-    let players = JSON.parse(sessionStorage.getItem('chzzk_players')) || defaultPlayers;
-    let matchHistory = JSON.parse(sessionStorage.getItem('chzzk_matchHistory')) || [];
-    let pendingMatches = JSON.parse(sessionStorage.getItem('chzzk_pendingMatches')) || [];
-    let pendingUsers = JSON.parse(sessionStorage.getItem('chzzk_pendingUsers')) || [];
+    let players = defaultPlayers;
+    let matchHistory = [];
+    let pendingMatches = [];
+    let pendingUsers = [];
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let adminDataMode = 'players'; // 'players' or 'matches'
     let searchTerm = '';
+    
+    // Real-time Database Snapshot
+    onSnapshot(doc(db, "AppData", "RankingState"), (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            players = data.players || defaultPlayers;
+            matchHistory = data.matchHistory || [];
+            pendingMatches = data.pendingMatches || [];
+            pendingUsers = data.pendingUsers || [];
+        } else {
+            // First time ever creating the DB entry
+            saveState();
+        }
+        updateUI();
+        if (isAdminLoggedIn) renderAdminDashboard();
+    });
 
-    function saveState() {
-        sessionStorage.setItem('chzzk_players', JSON.stringify(players));
-        sessionStorage.setItem('chzzk_matchHistory', JSON.stringify(matchHistory));
-        sessionStorage.setItem('chzzk_pendingMatches', JSON.stringify(pendingMatches));
-        sessionStorage.setItem('chzzk_pendingUsers', JSON.stringify(pendingUsers));
+    async function saveState() {
+        try {
+            await setDoc(doc(db, "AppData", "RankingState"), {
+                players: players,
+                matchHistory: matchHistory,
+                pendingMatches: pendingMatches,
+                pendingUsers: pendingUsers
+            });
+        } catch(e) { console.error("Firebase save failure:", e); }
     }
 
     // ELO Rating Config
@@ -530,32 +566,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sub-routine: Initialize Current Rank safely before the start
     calculateRanks();
     players.forEach(p => p.prevRank = p.currentRank);
-
-    if (!sessionStorage.getItem('chzzk_matchHistory')) {
-        // Initial match: '채선트' 승리 vs '아미1' 패배
-        // We add this manually but suppress the updateUI until the first manual initialization
-        const title = '스폰빵';
-        const winnerId = '3'; // 채선트
-        const loserId = '2';  // 아미1
-        const winner = players.find(p => p.id === winnerId);
-        const loser = players.find(p => p.id === loserId);
-
-        if(winner && loser) {
-            const initialDelta = calculateElo(winner.rating, loser.rating);
-            winner.rating += initialDelta;
-            winner.win += 1;
-            loser.rating -= initialDelta;
-            loser.loss += 1;
-
-            matchHistory.unshift({
-                id: Date.now(),
-                title: title,
-                date: new Date().toLocaleDateString('ko-KR') + ' ' + new Date().toLocaleTimeString('ko-KR'),
-                winner: { name: winner.name, delta: `+${initialDelta}` },
-                loser: { name: loser.name, delta: `-${initialDelta}` }
-            });
-        }
-    }
 
     updateUI();
 
