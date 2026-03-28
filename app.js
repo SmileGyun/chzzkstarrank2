@@ -146,6 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
         renderTierTable(); // Highlight in tier table
+        renderRankingTable(); // Filter ranking table
+        renderHistory(); // Filter match history
     });
 
     // Initialize Selects
@@ -200,6 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
         rankingTableBody.innerHTML = '';
         
         players.forEach(p => {
+            if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) return;
+
             const rankClass = p.currentRank <= 3 ? `rank-${p.currentRank}` : '';
             const winrate = getWinrate(p.win, p.loss);
             
@@ -380,19 +384,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render Match History
     function renderHistory() {
-        if (matchHistory.length === 0) {
+        let filteredHistory = matchHistory;
+        if (searchTerm) {
+            filteredHistory = matchHistory.filter(match => 
+                match.winner.name.toLowerCase().includes(searchTerm) || 
+                match.loser.name.toLowerCase().includes(searchTerm) ||
+                match.title.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        if (filteredHistory.length === 0) {
             historyContainer.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
-                    <h3>매치 기록이 없습니다</h3>
-                    <p>첫 번째 매치 결과를 제보해 보세요.</p>
+                    <h3>검색된 매치 기록이 없습니다</h3>
                 </div>
             `;
             return;
         }
 
         let html = '<div class="history-list">';
-        matchHistory.forEach(match => {
+        filteredHistory.forEach(match => {
             html += `
                 <div class="history-item">
                     <div class="match-info">
