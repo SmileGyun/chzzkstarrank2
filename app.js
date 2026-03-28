@@ -567,7 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
     calculateRanks();
     players.forEach(p => p.prevRank = p.currentRank);
 
-    updateUI();
+    // Initial load will be triggered entirely by Firebase onSnapshot now.
+    // updateUI() has been removed here to prevent flashing default data.
 
     // --- ADMIN LOGIC ---
     const adminLoginBtn = document.getElementById('adminLoginBtn');
