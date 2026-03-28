@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let matchHistory = [];
     let pendingMatches = [];
     let pendingUsers = [];
+    let lastRankResetDate = new Date().toLocaleDateString('ko-KR');
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let adminDataMode = 'players'; // 'players' or 'matches'
     let searchTerm = '';
@@ -73,13 +74,41 @@ document.addEventListener('DOMContentLoaded', () => {
             matchHistory = data.matchHistory || [];
             pendingMatches = data.pendingMatches || [];
             pendingUsers = data.pendingUsers || [];
+            lastRankResetDate = data.lastRankResetDate || new Date().toLocaleDateString('ko-KR');
         } else {
             // First time ever creating the DB entry
             saveState();
         }
+
+        // Midnight Reset Logic Update
+        const today = new Date().toLocaleDateString('ko-KR');
+        if (lastRankResetDate !== today) {
+            players.sort((a, b) => b.rating - a.rating);
+            players.forEach((p, index) => {
+                p.currentRank = index + 1;
+                p.prevRank = p.currentRank;
+            });
+            lastRankResetDate = today;
+            saveState();
+        }
+
         updateUI();
         if (isAdminLoggedIn) renderAdminDashboard();
     });
+
+    // Check for midnight rollover every minute for active clients
+    setInterval(() => {
+        const today = new Date().toLocaleDateString('ko-KR');
+        if (lastRankResetDate !== today) {
+            players.sort((a, b) => b.rating - a.rating);
+            players.forEach((p, index) => {
+                p.currentRank = index + 1;
+                p.prevRank = p.currentRank;
+            });
+            lastRankResetDate = today;
+            updateUI(); // also calls saveState implicitly
+        }
+    }, 60000);
 
     async function saveState() {
         try {
@@ -87,7 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 players: players,
                 matchHistory: matchHistory,
                 pendingMatches: pendingMatches,
-                pendingUsers: pendingUsers
+                pendingUsers: pendingUsers,
+                lastRankResetDate: lastRankResetDate
             });
         } catch(e) { console.error("Firebase save failure:", e); }
     }
@@ -323,9 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Process Match
     function processMatch(title, winnerId, loserId) {
-        // Store previous ranks before match
-        players.forEach(p => p.prevRank = p.currentRank);
-
         const winner = players.find(p => p.id === winnerId);
         const loser = players.find(p => p.id === loserId);
 
@@ -565,7 +592,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sub-routine: Initialize Current Rank safely before the start
     calculateRanks();
-    players.forEach(p => p.prevRank = p.currentRank);
 
     // Initial load will be triggered entirely by Firebase onSnapshot now.
     // updateUI() has been removed here to prevent flashing default data.
