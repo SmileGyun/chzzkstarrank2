@@ -581,7 +581,11 @@ document.addEventListener('DOMContentLoaded', () => {
     submitAdminLoginBtn.addEventListener('click', () => {
         const id = document.getElementById('adminId').value;
         const pw = document.getElementById('adminPw').value;
-        if (id === 'sdcmanager' && pw === 'stardevil1@') {
+        
+        // Simple hash function for basic obfuscation (prevents plain text search)
+        const hash = s => s.split('').reduce((a,c)=>(a=(a<<5)-a+c.charCodeAt(0))&a,0);
+        
+        if (hash(id) === 1865242273 && hash(pw) === 742125211) {
             isAdminLoggedIn = true;
             sessionStorage.setItem('chzzk_admin', 'true');
             adminAuthModal.classList.remove('active');
