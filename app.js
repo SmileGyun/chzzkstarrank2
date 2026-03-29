@@ -164,21 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (const m of backupMatches) await setDoc(doc(db, "Matches", m.id.toString()), m);
         }
 
-        const oldStateRef = doc(db, "AppData", "RankingState");
-        const oldStateSnap = await getDoc(oldStateRef);
-        if (oldStateSnap.exists()) {
-            const data = oldStateSnap.data();
-            if (data.pendingMatches) {
-                for (const pm of data.pendingMatches) {
-                    if (pm.status === 'pending') await setDoc(doc(db, "MatchReports", pm.id || Date.now().toString()), pm);
-                }
-            }
-            if (data.pendingUsers) {
-                for (const pu of data.pendingUsers) {
-                    if (pu.status === 'pending') await setDoc(doc(db, "UserReports", pu.id || Date.now().toString()), pu);
-                }
-            }
-        }
+
     }
 
     await migrateToCollections();
@@ -516,13 +502,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('tab-admin').onclick = async (e) => {
         if (!isAdminLoggedIn) return;
-        const id = e.target.dataset.id;
-        if (e.target.classList.contains('admin-match-approve')) {
+        const btn = e.target.closest('.admin-btn');
+        if (!btn || !btn.dataset.id) return;
+        const id = btn.dataset.id;
+
+        if (btn.classList.contains('admin-match-approve')) {
             const m = pendingMatches.find(x => x.docId === id);
             if(m) { await applyMatchResult(m.title, m.winnerId, m.loserId); await deleteDoc(doc(db, "MatchReports", id)); alert('승인 완료'); }
         }
-        if (e.target.classList.contains('admin-match-reject')) await deleteDoc(doc(db, "MatchReports", id));
-        if (e.target.classList.contains('admin-user-approve')) {
+        if (btn.classList.contains('admin-match-reject')) await deleteDoc(doc(db, "MatchReports", id));
+        if (btn.classList.contains('admin-user-approve')) {
             const u = pendingUsers.find(x => x.docId === id);
             if(u) {
                 const nid = Date.now().toString();
@@ -531,19 +520,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('승인 완료');
             }
         }
-        if (e.target.classList.contains('admin-user-reject')) await deleteDoc(doc(db, "UserReports", id));
-        if (e.target.classList.contains('admin-save-player')) {
-            const row = e.target.closest('.admin-edit-row');
+        if (btn.classList.contains('admin-user-reject')) await deleteDoc(doc(db, "UserReports", id));
+        if (btn.classList.contains('admin-save-player')) {
+            const row = btn.closest('.admin-edit-row');
             await updateDoc(doc(db, "Players", id), { name: row.querySelector('.p-name').value, race: row.querySelector('.p-race').value, rating: parseInt(row.querySelector('.p-rating').value), win: parseInt(row.querySelector('.p-win').value), loss: parseInt(row.querySelector('.p-loss').value) });
             alert('저장 완료');
         }
-        if (e.target.classList.contains('admin-delete-player')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
-        if (e.target.classList.contains('admin-save-match')) {
-            const row = e.target.closest('.admin-edit-row');
+        if (btn.classList.contains('admin-delete-player')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
+        if (btn.classList.contains('admin-save-match')) {
+            const row = btn.closest('.admin-edit-row');
             await updateDoc(doc(db, "Matches", id), { title: row.querySelector('.m-title').value });
             alert('저장 완료');
         }
-        if (e.target.classList.contains('admin-delete-match')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Matches", id)); }
+        if (btn.classList.contains('admin-delete-match')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Matches", id)); }
     };
 
     document.querySelectorAll('.admin-grid-card').forEach(card => card.addEventListener('click', () => {
