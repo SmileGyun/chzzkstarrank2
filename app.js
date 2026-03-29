@@ -253,9 +253,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         totalPlayersEl.textContent = players.length;
         totalMatchesEl.textContent = matchHistory.length;
         historyCountEl.textContent = matchHistory.length;
+        
         if (players.length > 0) {
-            topRatingScoreEl.textContent = Math.round(players[0].rating);
-            topRatingNameEl.textContent = players[0].name;
+            // 레이팅 1등 (이미 정렬되어 있음)
+            const ratingWinner = players[0];
+            topRatingScoreEl.textContent = Math.round(ratingWinner.rating);
+            topRatingNameEl.textContent = ratingWinner.name;
+
+            // 승률 1등 (4판 이하 100% 승률 제외)
+            const winrateCandidate = [...players].filter(p => {
+                const total = p.win + p.loss;
+                const rate = total === 0 ? 0 : p.win / total;
+                if (total <= 4 && rate === 1.0) return false;
+                return total > 0;
+            }).sort((a, b) => {
+                const rateA = a.win / (a.win + a.loss);
+                const rateB = b.win / (b.win + b.loss);
+                if (rateB !== rateA) return rateB - rateA;
+                return b.win - a.win; // 승률 같을 시 승리 수 우선
+            })[0];
+
+            if (winrateCandidate) {
+                document.getElementById('topWinrateName').textContent = winrateCandidate.name;
+                document.getElementById('topWinratePct').textContent = getWinrate(winrateCandidate.win, winrateCandidate.loss);
+            }
+
+            // 판수 1등
+            const activityWinner = [...players].sort((a, b) => (b.win + b.loss) - (a.win + a.loss))[0];
+            if (activityWinner) {
+                document.getElementById('topMatchesName').textContent = activityWinner.name;
+                document.getElementById('topMatchesCount').textContent = `${activityWinner.win + activityWinner.loss}판`;
+            }
         }
     }
 

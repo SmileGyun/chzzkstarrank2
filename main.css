@@ -901,3 +901,57 @@ body {
     font-weight: 700;
     padding: 0 0.25rem;
 }
+
+/* Hall of Fame Records UI */
+.records-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+}
+
+.record-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: transform 0.2s ease;
+}
+
+.record-row:hover {
+    transform: translateX(4px);
+    background: rgba(255,255,255,0.05);
+}
+
+.record-label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    width: 65px;
+}
+
+.record-user {
+    font-weight: 700;
+    color: var(--text-main);
+    flex: 1;
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.record-value {
+    font-weight: 800;
+    color: var(--accent-green);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.hall-of-fame .card-title {
+    color: #fbbf24;
+}
+

@@ -61,13 +61,28 @@
                 <div class="card-value" id="totalMatches">24</div>
                 <div class="card-desc">2026년 총 경기 수</div>
             </div>
-            <div class="card">
+            <div class="card hall-of-fame">
                 <div class="card-header">
                     <div class="card-icon yellow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div>
-                    <span class="card-title">TOP RATING</span>
+                    <span class="card-title">HALL OF FAME</span>
                 </div>
-                <div class="card-value"><span id="topRatingScore">2480</span> <span id="topRatingName" class="top-name">제리</span></div>
-                <div class="card-desc">최고 레이팅 기록</div>
+                <div class="records-grid">
+                    <div class="record-row">
+                        <span class="record-label">레이팅 1등</span>
+                        <span class="record-user" id="topRatingName">제리</span>
+                        <span class="record-value" id="topRatingScore">2480</span>
+                    </div>
+                    <div class="record-row" title="4판 이하 100% 승률 제외">
+                        <span class="record-label">승률 1등</span>
+                        <span class="record-user" id="topWinrateName">-</span>
+                        <span class="record-value" id="topWinratePct">-</span>
+                    </div>
+                    <div class="record-row">
+                        <span class="record-label">판수 1등</span>
+                        <span class="record-user" id="topMatchesName">-</span>
+                        <span class="record-value" id="topMatchesCount">-</span>
+                    </div>
+                </div>
             </div>
         </section>
 
