@@ -94,11 +94,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let searchTerm = '';
     
-    // --- [마이그레이션 로직] ---
+    // --- [마이그레이션 로직: 데이터 유실 방지를 위해 개수가 부족하면 무조건 실행] ---
     async function migrateToCollections() {
         const playersCol = collection(db, "Players");
         const playersSnap = await getDocs(playersCol);
-        if (playersSnap.empty) {
+        // 플레이어 수가 38개 미만이거나 기록이 없으면 강제 복구 실행
+        if (playersSnap.size < 38) {
             console.log("플레이어 데이터 복구 중...");
             for (const p of backupPlayers) await setDoc(doc(db, "Players", p.id), p);
         }
@@ -116,12 +117,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = oldStateSnap.data();
             if (data.pendingMatches) {
                 for (const pm of data.pendingMatches) {
-                    if (pm.status === 'pending') await setDoc(doc(db, "MatchReports", pm.id), pm);
+                    if (pm.status === 'pending') await setDoc(doc(db, "MatchReports", pm.id || Date.now().toString()), pm);
                 }
             }
             if (data.pendingUsers) {
                 for (const pu of data.pendingUsers) {
-                    if (pu.status === 'pending') await setDoc(doc(db, "UserReports", pu.id), pu);
+                    if (pu.status === 'pending') await setDoc(doc(db, "UserReports", pu.id || Date.now().toString()), pu);
                 }
             }
         }
@@ -439,4 +440,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.admin-content-section').forEach(s => s.style.display = 'none');
         card.classList.add('active'); document.getElementById(card.dataset.target).style.display = 'block';
     }));
+    
+    // 모달 닫기 버튼 버그 수정
+    document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
 });
