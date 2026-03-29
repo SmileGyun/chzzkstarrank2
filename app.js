@@ -94,6 +94,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let searchTerm = '';
     
+    let historyCurrentPage = 1;
+    let adminHistoryCurrentPage = 1;
+    const ITEMS_PER_PAGE = 20;
+
+    function renderPagination(containerId, totalItems, currentPage, onPageChange) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        if (totalPages <= 1) return;
+
+        const maxButtons = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage + 1 < maxButtons) startPage = Math.max(1, endPage - maxButtons + 1);
+
+        const createBtn = (page, text, active = false, disabled = false) => {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${active ? 'active' : ''}`;
+            btn.innerHTML = text;
+            btn.disabled = disabled;
+            if (!disabled) btn.onclick = () => onPageChange(page);
+            return btn;
+        };
+
+        container.appendChild(createBtn(currentPage - 1, '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>', false, currentPage === 1));
+
+        if (startPage > 1) {
+            container.appendChild(createBtn(1, '1'));
+            if (startPage > 2) {
+                const dots = document.createElement('span');
+                dots.className = 'pagination-dots';
+                dots.textContent = '...';
+                container.appendChild(dots);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            container.appendChild(createBtn(i, i, i === currentPage));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.className = 'pagination-dots';
+                dots.textContent = '...';
+                container.appendChild(dots);
+            }
+            container.appendChild(createBtn(totalPages, totalPages));
+        }
+
+        container.appendChild(createBtn(currentPage + 1, '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>', false, currentPage === totalPages));
+    }
+    
     // --- [마이그레이션 로직: 데이터 유실 방지를 위해 개수가 부족하면 무조건 실행] ---
     async function migrateToCollections() {
         const playersCol = collection(db, "Players");
@@ -170,9 +223,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
+        historyCurrentPage = 1;
+        adminHistoryCurrentPage = 1;
         renderTierTable();
         renderRankingTable();
         renderHistory();
+        if (isAdminLoggedIn) renderAdminDashboard();
     });
 
     // 서버 데이터를 불러오기 전, 백업 데이터로 즉시 화면을 구성합니다.
@@ -317,8 +373,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderHistory() {
         let fh = matchHistory;
         if (searchTerm) fh = matchHistory.filter(m => m.winner.name.toLowerCase().includes(searchTerm) || m.loser.name.toLowerCase().includes(searchTerm) || m.title.toLowerCase().includes(searchTerm));
-        if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; return; }
-        historyContainer.innerHTML = '<div class="history-list">' + fh.map(m => `
+        if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; document.getElementById('historyPagination').innerHTML = ''; return; }
+        
+        const totalItems = fh.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        if (historyCurrentPage > totalPages) historyCurrentPage = totalPages || 1;
+
+        const pagedData = fh.slice((historyCurrentPage - 1) * ITEMS_PER_PAGE, historyCurrentPage * ITEMS_PER_PAGE);
+
+        historyContainer.innerHTML = '<div class="history-list">' + pagedData.map(m => `
             <div class="history-item">
                 <div class="match-info"><h4>${m.title}</h4><div class="match-time">${m.date}</div></div>
                 <div class="match-result">
@@ -327,6 +390,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="player-outcome player-loser">${m.loser.name} <span class="rating-delta">${m.loser.delta}</span></div>
                 </div>
             </div>`).join('') + '</div>';
+
+        renderPagination('historyPagination', totalItems, historyCurrentPage, (page) => {
+            historyCurrentPage = page;
+            renderHistory();
+            window.scrollTo({ top: historyContainer.offsetTop - 100, behavior: 'smooth' });
+        });
     }
 
     function updateUI() { calculateRanks(); renderStats(); renderRankingTable(); renderTierTable(); renderHistory(); initSelects(); }
@@ -398,12 +467,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button class="admin-btn approve admin-save-player" data-id="${p.id}">저장</button><button class="admin-btn delete admin-delete-player" data-id="${p.id}">삭제</button>
             </div></div>`).join('');
 
-        document.getElementById('adminHistoryContainer').innerHTML = matchHistory.map(m => `
+        const totalHistoryItems = matchHistory.length;
+        const totalHistoryPages = Math.ceil(totalHistoryItems / ITEMS_PER_PAGE);
+        if (adminHistoryCurrentPage > totalHistoryPages) adminHistoryCurrentPage = totalHistoryPages || 1;
+        
+        const pagedAdminHistory = matchHistory.slice((adminHistoryCurrentPage - 1) * ITEMS_PER_PAGE, adminHistoryCurrentPage * ITEMS_PER_PAGE);
+
+        document.getElementById('adminHistoryContainer').innerHTML = pagedAdminHistory.map(m => `
             <div class="admin-item" style="flex-direction:column; align-items:start;"><div class="admin-edit-row">
-                <input type="text" class="admin-edit-input m-title" data-id="${m.id}" value="${m.title}" style="width:250px;">
-                <span style="font-size:0.8rem; margin:0 5px;">${m.winner.name} vs ${m.loser.name}</span>
+                <input type="text" class="admin-edit-input m-title" data-id="${m.id}" value="${m.title}" style="width:300px;">
+                <span style="font-size:0.8rem; margin:0 5px; color:var(--text-muted);">${m.winner.name} vs ${m.loser.name}</span>
                 <button class="admin-btn approve admin-save-match" data-id="${m.id}">저장</button><button class="admin-btn delete admin-delete-match" data-id="${m.id}">삭제</button>
-            </div></div>`).join('');
+            </div></div>`).join('') || '기록 없음';
+
+        renderPagination('adminHistoryPagination', totalHistoryItems, adminHistoryCurrentPage, (page) => {
+            adminHistoryCurrentPage = page;
+            renderAdminDashboard();
+        });
     }
 
     document.getElementById('tab-admin').onclick = async (e) => {

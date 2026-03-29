@@ -851,3 +851,53 @@ body {
     font-size: 0.6rem;
     padding: 0.1rem 0.25rem;
 }
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+    padding: 1rem;
+}
+
+.page-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.5rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: var(--bg-hover);
+    border-color: var(--text-muted);
+}
+
+.page-btn.active {
+    background-color: #1e2233;
+    border-color: #60a5fa;
+    color: #60a5fa;
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.2);
+}
+
+.page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pagination-dots {
+    color: var(--text-muted);
+    font-weight: 700;
+    padding: 0 0.25rem;
+}
