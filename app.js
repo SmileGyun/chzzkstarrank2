@@ -551,6 +551,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.admin-content-section').forEach(s => s.style.display = 'none');
         card.classList.add('active'); document.getElementById(card.dataset.target).style.display = 'block';
     }));
+
+    // 데이터 백업 기능
+    document.getElementById('backupDataBtn').onclick = () => {
+        const data = {
+            players: players,
+            matches: matchHistory,
+            backupDate: new Date().toLocaleString('ko-KR')
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        a.href = url;
+        a.download = `chzzk_rank_backup_${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert('백업 데이터(JSON)가 성공적으로 다운로드되었습니다.');
+    };
     
     // 모달 닫기 버튼 버그 수정
     document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
