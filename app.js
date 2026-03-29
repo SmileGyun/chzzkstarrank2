@@ -532,7 +532,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             await updateDoc(doc(db, "Matches", id), { title: row.querySelector('.m-title').value });
             alert('저장 완료');
         }
-        if (btn.classList.contains('admin-delete-match')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Matches", id)); }
+        if (btn.classList.contains('admin-delete-match')) {
+            if(confirm('이 경기를 삭제하면 선수의 전석과 레이팅도 복구됩니다. 삭제하시겠습니까?')) {
+                const m = matchHistory.find(x => x.id.toString() === id);
+                if (m) {
+                    const winPlayer = players.find(p => p.name === m.winner.name);
+                    const losePlayer = players.find(p => p.name === m.loser.name);
+                    
+                    if (winPlayer && losePlayer) {
+                        const delta = parseInt(m.winner.delta.replace('+', '').replace('-', '')) || 0;
+                        await updateDoc(doc(db, "Players", winPlayer.id), { 
+                            rating: winPlayer.rating - delta, 
+                            win: Math.max(0, winPlayer.win - 1) 
+                        });
+                        await updateDoc(doc(db, "Players", losePlayer.id), { 
+                            rating: losePlayer.rating + delta, 
+                            loss: Math.max(0, losePlayer.loss - 1) 
+                        });
+                    }
+                }
+                await deleteDoc(doc(db, "Matches", id));
+                alert('경기 기록 및 선수 데이터가 복구되었습니다.');
+            }
+        }
     };
 
     document.querySelectorAll('.admin-grid-card').forEach(card => card.addEventListener('click', () => {
