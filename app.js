@@ -87,8 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: 1774683696640, date: "2026. 3. 28. 오후 4:41:36", title: "SDC Cup Season 1 전야제 1세트", winner: { name: "워모그JaX", delta: "+13" }, loser: { name: "프로피", delta: "-13" } }
     ];
 
-    let players = [];
-    let matchHistory = [];
+    let players = backupPlayers.map(p => ({ ...p }));
+    let matchHistory = [...backupMatches];
     let pendingMatches = [];
     let pendingUsers = [];
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
@@ -174,6 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderRankingTable();
         renderHistory();
     });
+
+    // 서버 데이터를 불러오기 전, 백업 데이터로 즉시 화면을 구성합니다.
+    updateUI();
 
     function initSelects() {
         winnerSelect.innerHTML = '<option value="">선택하세요</option>';
