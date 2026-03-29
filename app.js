@@ -174,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         players = snapshot.docs.map(doc => ({ ...doc.data() }));
         players.sort((a, b) => b.rating - a.rating);
         updateUI();
+        if (isAdminLoggedIn) renderAdminDashboard();
     });
 
     onSnapshot(collection(db, "Matches"), (snapshot) => {
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         matchHistory.sort((a, b) => b.id - a.id);
         renderHistory();
         renderStats();
+        if (isAdminLoggedIn) renderAdminDashboard();
     });
 
     onSnapshot(collection(db, "MatchReports"), (snapshot) => {
