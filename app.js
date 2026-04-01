@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { 
     getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, 
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit 
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment 
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -373,17 +373,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function applyMatchResult(title, winnerId, loserId) {
-        const winner = players.find(p => p.id === winnerId);
-        const loser = players.find(p => p.id === loserId);
-        if(!winner || !loser) return;
+    async function applyMatchResult(title, winnerId, loserId, winnerNameFallback, loserNameFallback) {
+        let winner = players.find(p => p.id === winnerId);
+        let loser = players.find(p => p.id === loserId);
+
+        // ID로 찾지 못한 경우 이름으로 탐색 (백업 데이터 유실 대비)
+        if (!winner && winnerNameFallback) winner = players.find(p => p.name === winnerNameFallback);
+        if (!loser && loserNameFallback) loser = players.find(p => p.name === loserNameFallback);
+
+        if(!winner || !loser) {
+            console.error("선수를 찾을 수 없습니다:", {winnerId, loserId, winnerNameFallback, loserNameFallback});
+            return;
+        }
+
         const p1 = 1 / (1 + Math.pow(10, (loser.rating - winner.rating) / 400));
         const delta = Math.round(K_FACTOR * (1 - p1));
         
-        await updateDoc(doc(db, "Players", winner.id), { rating: winner.rating + delta, win: winner.win + 1 });
-        await updateDoc(doc(db, "Players", loser.id), { rating: loser.rating - delta, loss: loser.loss + 1 });
+        // 원자적 업데이트 (increment) 사용으로 데이터 정합성 강화
+        await updateDoc(doc(db, "Players", winner.id), { 
+            rating: increment(delta), 
+            win: increment(1) 
+        });
+        await updateDoc(doc(db, "Players", loser.id), { 
+            rating: increment(-delta), 
+            loss: increment(1) 
+        });
+
         const mid = Date.now();
-        await setDoc(doc(db, "Matches", mid.toString()), { id: mid, title: title || '친선전', date: new Date().toLocaleString('ko-KR'), winner: { name: winner.name, delta: `+${delta}` }, loser: { name: loser.name, delta: `-${delta}` } });
+        await setDoc(doc(db, "Matches", mid.toString()), { 
+            id: mid, 
+            title: title || '친선전', 
+            date: new Date().toLocaleString('ko-KR'), 
+            winner: { name: winner.name, delta: `+${delta}` }, 
+            loser: { name: loser.name, delta: `-${delta}` } 
+        });
     }
 
     function renderHistory() {
@@ -510,7 +533,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (btn.classList.contains('admin-match-approve')) {
             const m = pendingMatches.find(x => x.docId === id);
-            if(m) { await applyMatchResult(m.title, m.winnerId, m.loserId); await deleteDoc(doc(db, "MatchReports", id)); alert('승인 완료'); }
+            if(m) { 
+                await applyMatchResult(m.title, m.winnerId, m.loserId, m.winnerName, m.loserName); 
+                await deleteDoc(doc(db, "MatchReports", id)); 
+                alert('승인 완료 및 데이터가 즉시 반영되었습니다.'); 
+            }
         }
         if (btn.classList.contains('admin-match-reject')) await deleteDoc(doc(db, "MatchReports", id));
         if (btn.classList.contains('admin-user-approve')) {
@@ -535,7 +562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('저장 완료');
         }
         if (btn.classList.contains('admin-delete-match')) {
-            if(confirm('이 경기를 삭제하면 선수의 전석과 레이팅도 복구됩니다. 삭제하시겠습니까?')) {
+            if(confirm('이 경기를 삭제하면 선수의 전적과 레이팅도 복구됩니다. 삭제하시겠습니까?')) {
                 const m = matchHistory.find(x => x.id.toString() === id);
                 if (m) {
                     const winPlayer = players.find(p => p.name === m.winner.name);
@@ -544,12 +571,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (winPlayer && losePlayer) {
                         const delta = parseInt(m.winner.delta.replace('+', '').replace('-', '')) || 0;
                         await updateDoc(doc(db, "Players", winPlayer.id), { 
-                            rating: winPlayer.rating - delta, 
-                            win: Math.max(0, winPlayer.win - 1) 
+                            rating: increment(-delta), 
+                            win: increment(-1) 
                         });
                         await updateDoc(doc(db, "Players", losePlayer.id), { 
-                            rating: losePlayer.rating + delta, 
-                            loss: Math.max(0, losePlayer.loss - 1) 
+                            rating: increment(delta), 
+                            loss: increment(-1) 
                         });
                     }
                 }
@@ -564,6 +591,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.admin-content-section').forEach(s => s.style.display = 'none');
         card.classList.add('active'); document.getElementById(card.dataset.target).style.display = 'block';
     }));
+
+    // 데이터 보정 (전적 동기화) 로직
+    document.getElementById('repairStatsBtn').onclick = async () => {
+        if (!confirm('정말로 모든 선수의 전적을 매치 기록 기반으로 재계산하시겠습니까?')) return;
+        
+        try {
+            const btn = document.getElementById('repairStatsBtn');
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = '동기화 중...';
+
+            // 모든 매치와 플레이어 데이터 가져오기
+            const matchSnap = await getDocs(collection(db, "Matches"));
+            const allMatches = matchSnap.docs.map(doc => doc.data());
+
+            const playerSnap = await getDocs(collection(db, "Players"));
+            const allPlayers = playerSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            for (const player of allPlayers) {
+                let wins = 0;
+                let losses = 0;
+
+                // 매치 기록에서 해당 선수의 이름을 검색하여 승/패 카운트
+                allMatches.forEach(m => {
+                    if (m.winner.name === player.name) wins++;
+                    if (m.loser.name === player.name) losses++;
+                });
+
+                // 현재 기록과 다를 경우에만 업데이트
+                if (player.win !== wins || player.loss !== losses) {
+                    await updateDoc(doc(db, "Players", player.id), {
+                        win: wins,
+                        loss: losses
+                    });
+                }
+            }
+
+            alert('전적 동기화가 완료되었습니다. 데이터 업데이트를 위해 페이지를 새로고침합니다.');
+            location.reload();
+        } catch (error) {
+            console.error(error);
+            alert('오류 발생: ' + error.message);
+            const btn = document.getElementById('repairStatsBtn');
+            btn.disabled = false;
+            btn.textContent = '전체 전적 동기화 실행';
+        }
+    };
     
     // 모달 닫기 버튼 버그 수정
     document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
