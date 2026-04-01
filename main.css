@@ -1137,6 +1137,7 @@ body {
 
 .status-blue .record-value { color: #3b82f6; }
 .status-purple .record-value { color: #a855f7; }
+.status-green .record-value { color: var(--accent-green); }
 
 
 .hall-of-fame .card-title {
