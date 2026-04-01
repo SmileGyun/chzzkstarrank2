@@ -418,26 +418,21 @@ body {
 .rank-2 { color: #94a3b8; }
 .rank-3 { color: #d97706; }
 
-/* User info cell with large gap from rank */
-.user-info-cell {
-    padding-left: 20% !important;
-    text-align: left;
+/* Tag cell: right-aligned so tags sit close to the user name column */
+.tag-cell {
+    text-align: right;
+    padding-right: 6px !important;
+    white-space: nowrap;
+    vertical-align: middle;
 }
-.user-info-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.tags-container {
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-    min-width: 60px; /* Provides minimum space even with few/no tags */
-}
+
+/* User name cell: reduced left padding so it's close to tag cell */
 .user-name {
     font-weight: 600;
-    white-space: nowrap;
+    padding-left: 6px !important;
 }
+
+/* Race cell: reduced left padding to narrow the user-race gap */
 .race-cell {
     padding-left: 8px !important;
 }
