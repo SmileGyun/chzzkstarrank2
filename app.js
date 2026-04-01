@@ -625,66 +625,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         card.classList.add('active'); document.getElementById(card.dataset.target).style.display = 'block';
     }));
 
-    // 데이터 보정 (전적 동기화) 로직
-    document.getElementById('repairStatsBtn').onclick = async () => {
-        if (!confirm('정말로 모든 선수의 전적을 매치 기록 기반으로 재계산하시겠습니까?')) return;
-        
-        try {
-            const btn = document.getElementById('repairStatsBtn');
-            btn.disabled = true;
-            const originalText = btn.textContent;
-            btn.textContent = '동기화 중...';
-
-            // 모든 매치와 플레이어 데이터 가져오기
-            const matchSnap = await getDocs(collection(db, "Matches"));
-            const allMatches = matchSnap.docs.map(doc => doc.data());
-
-            const playerSnap = await getDocs(collection(db, "Players"));
-            const allPlayers = playerSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            for (const player of allPlayers) {
-                let wins = 0;
-                let losses = 0;
-                let deltaSum = 0;
-
-                // 매치 기록에서 해당 선수의 이름을 검색하여 승/패 카운트 및 레이팅 변동 합산
-                allMatches.forEach(m => {
-                    if (m.winner.name === player.name) {
-                        wins++;
-                        deltaSum += parseInt(m.winner.delta.replace('+', '')) || 0;
-                    }
-                    if (m.loser.name === player.name) {
-                        losses++;
-                        deltaSum += parseInt(m.loser.delta) || 0;
-                    }
-                });
-
-                // 초기 레이팅 결정: 백업 데이터가 있으면 백업 데이터의 레이팅을, 없으면 등록 시의 초기 레이팅 사용
-                const bp = backupPlayers.find(b => b.name === player.name);
-                const baseRating = bp ? bp.rating : (player.baseRating || 1200);
-                const newRating = baseRating + deltaSum;
-
-                // 데이터가 하나라도 다를 경우에만 업데이트
-                if (player.win !== wins || player.loss !== losses || Math.round(player.rating) !== Math.round(newRating)) {
-                    await updateDoc(doc(db, "Players", player.id), {
-                        win: wins,
-                        loss: losses,
-                        rating: newRating
-                    });
-                }
-            }
-
-            alert('전적 및 레이팅 동기화가 완료되었습니다. 데이터 업데이트를 위해 페이지를 새로고침합니다.');
-            location.reload();
-        } catch (error) {
-            console.error(error);
-            alert('오류 발생: ' + error.message);
-            const btn = document.getElementById('repairStatsBtn');
-            btn.disabled = false;
-            btn.textContent = '전체 전적 동기화 실행';
-        }
-    };
-    
     // 모달 닫기 버튼 버그 수정
     document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
 });
