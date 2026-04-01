@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { 
     getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, 
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment 
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction 
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -150,21 +150,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- [마이그레이션 로직: 데이터 유실 방지를 위해 개수가 부족하면 무조건 실행] ---
     async function migrateToCollections() {
         const playersCol = collection(db, "Players");
-        const playersSnap = await getDocs(playersCol);
-        // 플레이어 수가 38개 미만이거나 기록이 없으면 강제 복구 실행
-        if (playersSnap.size < 38) {
-            console.log("플레이어 데이터 복구 중...");
-            for (const p of backupPlayers) await setDoc(doc(db, "Players", p.id), p);
+        const matchesCol = collection(db, "Matches");
+
+        // 플레이어 데이터 복구 (기존 데이터가 없는 경우에만 한정하여 복구)
+        for (const p of backupPlayers) {
+            const playerRef = doc(db, "Players", p.id);
+            const playerSnap = await getDoc(playerRef);
+            if (!playerSnap.exists()) {
+                console.log(`플레이어 복구: ${p.name}`);
+                await setDoc(playerRef, { ...p, baseRating: p.rating, approvedAt: Date.now() });
+            }
         }
 
-        const matchesCol = collection(db, "Matches");
+        // 매치 기록 복구
         const matchesSnap = await getDocs(matchesCol);
         if (matchesSnap.empty) {
             console.log("매치 기록 복구 중...");
             for (const m of backupMatches) await setDoc(doc(db, "Matches", m.id.toString()), m);
         }
-
-
     }
 
     await migrateToCollections();
@@ -374,39 +377,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function applyMatchResult(title, winnerId, loserId, winnerNameFallback, loserNameFallback) {
-        let winner = players.find(p => p.id === winnerId);
-        let loser = players.find(p => p.id === loserId);
+        try {
+            await runTransaction(db, async (transaction) => {
+                // 1. 최신 유저 데이터 실시간 조회 (데이터 정합성 보장)
+                let winnerRef = doc(db, "Players", winnerId);
+                let winnerDoc = await transaction.get(winnerRef);
+                
+                // ID로 찾지 못한 경우 이름으로 탐색 시도
+                if (!winnerDoc.exists() && winnerNameFallback) {
+                    const p = players.find(p => p.name === winnerNameFallback);
+                    if (p) {
+                        winnerRef = doc(db, "Players", p.id);
+                        winnerDoc = await transaction.get(winnerRef);
+                    }
+                }
 
-        // ID로 찾지 못한 경우 이름으로 탐색 (백업 데이터 유실 대비)
-        if (!winner && winnerNameFallback) winner = players.find(p => p.name === winnerNameFallback);
-        if (!loser && loserNameFallback) loser = players.find(p => p.name === loserNameFallback);
+                let loserRef = doc(db, "Players", loserId);
+                let loserDoc = await transaction.get(loserRef);
+                if (!loserDoc.exists() && loserNameFallback) {
+                    const p = players.find(p => p.name === loserNameFallback);
+                    if (p) {
+                        loserRef = doc(db, "Players", p.id);
+                        loserDoc = await transaction.get(loserRef);
+                    }
+                }
 
-        if(!winner || !loser) {
-            console.error("선수를 찾을 수 없습니다:", {winnerId, loserId, winnerNameFallback, loserNameFallback});
-            return;
+                if (!winnerDoc.exists() || !loserDoc.exists()) {
+                    throw "선수 데이터를 찾을 수 없어 매치를 승인할 수 없습니다.";
+                }
+
+                const winnerData = winnerDoc.data();
+                const loserData = loserDoc.data();
+
+                // 2. 새로운 레이팅 및 변동치(delta) 계산
+                const p1 = 1 / (1 + Math.pow(10, (loserData.rating - winnerData.rating) / 400));
+                const delta = Math.round(K_FACTOR * (1 - p1));
+
+                // 3. 선수 전적 및 레이팅 원자적 업데이트
+                transaction.update(winnerRef, {
+                    rating: increment(delta),
+                    win: increment(1)
+                });
+                transaction.update(loserRef, {
+                    rating: increment(-delta),
+                    loss: increment(1)
+                });
+
+                // 4. 매치 결과 공식 기록 저장
+                const mid = Date.now().toString();
+                const matchRef = doc(db, "Matches", mid);
+                transaction.set(matchRef, {
+                    id: parseInt(mid),
+                    title: title || '친선전',
+                    date: new Date().toLocaleString('ko-KR'),
+                    winner: { name: winnerData.name, delta: `+${delta}` },
+                    loser: { name: loserData.name, delta: `-${delta}` }
+                });
+            });
+            return true;
+        } catch (e) {
+            console.error("매치 승인 트랜잭션 실패:", e);
+            alert("매치 승인 중 오류가 발생했습니다: " + e);
+            return false;
         }
-
-        const p1 = 1 / (1 + Math.pow(10, (loser.rating - winner.rating) / 400));
-        const delta = Math.round(K_FACTOR * (1 - p1));
-        
-        // 원자적 업데이트 (increment) 사용으로 데이터 정합성 강화
-        await updateDoc(doc(db, "Players", winner.id), { 
-            rating: increment(delta), 
-            win: increment(1) 
-        });
-        await updateDoc(doc(db, "Players", loser.id), { 
-            rating: increment(-delta), 
-            loss: increment(1) 
-        });
-
-        const mid = Date.now();
-        await setDoc(doc(db, "Matches", mid.toString()), { 
-            id: mid, 
-            title: title || '친선전', 
-            date: new Date().toLocaleString('ko-KR'), 
-            winner: { name: winner.name, delta: `+${delta}` }, 
-            loser: { name: loser.name, delta: `-${delta}` } 
-        });
     }
 
     function renderHistory() {
@@ -544,7 +577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const u = pendingUsers.find(x => x.docId === id);
             if(u) {
                 const nid = Date.now().toString();
-                await setDoc(doc(db, "Players", nid), { id: nid, name: u.name, race: u.race, rating: u.rating, win: u.win, loss: u.loss, prevRank: players.length+1, approvedAt: Date.now() });
+                await setDoc(doc(db, "Players", nid), { id: nid, name: u.name, race: u.race, rating: u.rating, win: u.win, loss: u.loss, prevRank: players.length+1, approvedAt: Date.now(), baseRating: u.rating });
                 await deleteDoc(doc(db, "UserReports", id));
                 alert('승인 완료');
             }
@@ -612,23 +645,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (const player of allPlayers) {
                 let wins = 0;
                 let losses = 0;
+                let deltaSum = 0;
 
-                // 매치 기록에서 해당 선수의 이름을 검색하여 승/패 카운트
+                // 매치 기록에서 해당 선수의 이름을 검색하여 승/패 카운트 및 레이팅 변동 합산
                 allMatches.forEach(m => {
-                    if (m.winner.name === player.name) wins++;
-                    if (m.loser.name === player.name) losses++;
+                    if (m.winner.name === player.name) {
+                        wins++;
+                        deltaSum += parseInt(m.winner.delta.replace('+', '')) || 0;
+                    }
+                    if (m.loser.name === player.name) {
+                        losses++;
+                        deltaSum += parseInt(m.loser.delta) || 0;
+                    }
                 });
 
-                // 현재 기록과 다를 경우에만 업데이트
-                if (player.win !== wins || player.loss !== losses) {
+                // 초기 레이팅 결정: 백업 데이터가 있으면 백업 데이터의 레이팅을, 없으면 등록 시의 초기 레이팅 사용
+                const bp = backupPlayers.find(b => b.name === player.name);
+                const baseRating = bp ? bp.rating : (player.baseRating || 1200);
+                const newRating = baseRating + deltaSum;
+
+                // 데이터가 하나라도 다를 경우에만 업데이트
+                if (player.win !== wins || player.loss !== losses || Math.round(player.rating) !== Math.round(newRating)) {
                     await updateDoc(doc(db, "Players", player.id), {
                         win: wins,
-                        loss: losses
+                        loss: losses,
+                        rating: newRating
                     });
                 }
             }
 
-            alert('전적 동기화가 완료되었습니다. 데이터 업데이트를 위해 페이지를 새로고침합니다.');
+            alert('전적 및 레이팅 동기화가 완료되었습니다. 데이터 업데이트를 위해 페이지를 새로고침합니다.');
             location.reload();
         } catch (error) {
             console.error(error);
