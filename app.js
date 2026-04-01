@@ -87,10 +87,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: 1774683696640, date: "2026. 3. 28. 오후 4:41:36", title: "SDC Cup Season 1 전야제 1세트", winner: { name: "워모그JaX", delta: "+13" }, loser: { name: "프로피", delta: "-13" } }
     ];
 
+    // --- [태그 정의 데이터] ---
+    const tagDefinitions = [
+        { name: "스딜동", color: "#fbbf24", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
+        { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
+        { name: "스악귀", color: "#f87171", members: ["나브자크"] },
+        { name: "스트리머", color: "#4ade80", members: ["아미1","코을","에뚜랑제","나브자크","순댕e","하늘루틴","전설의마왕9658","엄크술사","SmileGyun","아모크 ammock82","은송아지","앙오예","워모그JaX","라무쓰","망시","찬울 Chanwool","운요로","고보미","카루하","시폰케이크","비카Vika","양거북","쿤","고라니는똥손","실키아","킴쿼카","두두키"] },
+        { name: "여스트리머", color: "#f472b6", members: ["킴쿼카","두두키"] }
+    ];
+
     let players = backupPlayers.map(p => ({ ...p }));
     let matchHistory = [...backupMatches];
     let pendingMatches = [];
     let pendingUsers = [];
+    let tags = [];
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let searchTerm = '';
     
@@ -168,6 +178,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log("매치 기록 복구 중...");
             for (const m of backupMatches) await setDoc(doc(db, "Matches", m.id.toString()), m);
         }
+
+        // 태그 데이터 초기화 (Tags 컬렉션이 비어있을 때만)
+        for (const tag of tagDefinitions) {
+            const tagRef = doc(db, "Tags", tag.name);
+            const tagSnap = await getDoc(tagRef);
+            if (!tagSnap.exists()) {
+                console.log(`태그 초기화: ${tag.name}`);
+                await setDoc(tagRef, { name: tag.name, color: tag.color, members: tag.members });
+            }
+        }
     }
 
     await migrateToCollections();
@@ -196,6 +216,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, "UserReports"), (snapshot) => {
         pendingUsers = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
         if (isAdminLoggedIn) renderAdminDashboard();
+    });
+
+    onSnapshot(collection(db, "Tags"), (snapshot) => {
+        tags = snapshot.docs.map(doc => doc.data());
+        renderRankingTable();
     });
 
     const K_FACTOR = 32;
@@ -288,6 +313,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return (Date.now() - approvedAt) < (24 * 60 * 60 * 1000);
     }
 
+    function getPlayerTags(playerName) {
+        return tags.filter(t => t.members && t.members.includes(playerName));
+    }
+
     function renderRankingTable() {
         calculateRanks();
         rankingTableBody.innerHTML = '';
@@ -303,11 +332,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const newBadge = isNewUser(p.approvedAt) ? '<span class="new-badge">N</span>' : '';
+            const playerTags = getPlayerTags(p.name);
+            const tagsHtml = playerTags.map(t =>
+                `<span class="tag-badge" style="color:${t.color}; border-color:${t.color};">${t.name}</span>`
+            ).join('');
+
             const trOuter = document.createElement('tr');
             trOuter.innerHTML = `
                 <td><span class="rank-number ${rankClass}">${p.currentRank}</span> ${rankChangeHtml}</td>
+                <td class="tag-cell">${tagsHtml}</td>
                 <td class="user-name">${newBadge}${p.name}</td>
-                <td><span class="race-badge ${p.race.toLowerCase()}">${p.race}</span></td>
+                <td class="race-cell"><span class="race-badge ${p.race.toLowerCase()}">${p.race}</span></td>
                 <td class="rating-score">${Math.round(p.rating)}</td>
                 <td class="record"><span class="win">${p.win}W</span> / <span class="loss">${p.loss}L</span> <span class="winrate">(${winrate})</span></td>
                 <td>

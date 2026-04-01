@@ -418,8 +418,47 @@ body {
 .rank-2 { color: #94a3b8; }
 .rank-3 { color: #d97706; }
 
+/* Tag cell: right-aligned so tags sit close to the user name column */
+.tag-cell {
+    text-align: right;
+    padding-right: 6px !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* User name cell: reduced left padding so it's close to tag cell */
 .user-name {
     font-weight: 600;
+    padding-left: 6px !important;
+}
+
+/* Race cell: reduced left padding to narrow the user-race gap */
+.race-cell {
+    padding-left: 8px !important;
+}
+
+/* Tag badge: SDC-style rounded border, same border and text color */
+.tag-badge {
+    display: inline-block;
+    border: 1.5px solid;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: transparent;
+    margin-left: 3px;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    transition: opacity 0.2s;
+}
+
+.tag-badge:first-child {
+    margin-left: 0;
+}
+
+.tag-badge:hover {
+    opacity: 0.75;
 }
 
 .race-badge {
