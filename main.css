@@ -1037,6 +1037,7 @@ body {
 .record-row.status-blue::before { background-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
 .record-row.status-purple::before { background-color: #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); }
 .record-row.status-green::before { background-color: var(--accent-green); box-shadow: 0 0 10px rgba(0, 217, 90, 0.3); }
+.record-row.status-gray::before { background-color: var(--text-muted); box-shadow: 0 0 10px rgba(148, 163, 184, 0.3); }
 
 .record-row:hover {
     transform: translateX(4px);
