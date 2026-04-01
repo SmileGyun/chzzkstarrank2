@@ -418,33 +418,39 @@ body {
 .rank-2 { color: #94a3b8; }
 .rank-3 { color: #d97706; }
 
-/* Optimized Player Info Column (Tags + Name) */
+/* Optimized Player Info Column (Anchored Center) */
 .player-info-cell {
-    padding-left: 100px !important; /* Large gap from Rank */
-    text-align: left;
+    text-align: center;
+    padding-left: 1.5rem !important;
 }
 
 .player-info-wrapper {
-    display: flex;
+    position: relative;
+    display: inline-flex;
     align-items: center;
-    gap: 8px; /* Space between tags and name */
+    justify-content: center;
+    min-height: 32px;
 }
 
 .player-tags {
+    position: absolute;
+    right: 100%;
+    margin-right: 12px;
     display: flex;
     gap: 4px;
-    justify-content: flex-end;
-    min-width: 45px; /* Ensures tags align even if some have more/less tags */
+    white-space: nowrap;
+    align-items: center;
 }
 
 .player-name {
     font-weight: 600;
     white-space: nowrap;
+    display: inline-block;
 }
 
-/* Reduced spacing from name to race */
+/* Base Race alignment */
 .race-cell {
-    padding-left: 0 !important;
+    padding-left: 1rem !important;
 }
 
 /* Tag badge: SDC-style rounded border, same border and text color */
@@ -517,11 +523,12 @@ body {
 }
 
 .rank-change {
-    margin-left: 0.5rem;
+    margin-left: 0.45rem;
     font-size: 0.75rem;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
+    white-space: nowrap;
 }
 .change-up { color: var(--accent-green); }
 .change-down { color: #ef4444; }
