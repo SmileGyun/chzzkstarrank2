@@ -418,23 +418,33 @@ body {
 .rank-2 { color: #94a3b8; }
 .rank-3 { color: #d97706; }
 
-/* Tag cell: right-aligned so tags sit close to the user name column */
-.tag-cell {
-    text-align: right;
-    padding-right: 6px !important;
-    white-space: nowrap;
-    vertical-align: middle;
+/* Optimized Player Info Column (Tags + Name) */
+.player-info-cell {
+    padding-left: 100px !important; /* Large gap from Rank */
+    text-align: left;
 }
 
-/* User name cell: reduced left padding so it's close to tag cell */
-.user-name {
+.player-info-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between tags and name */
+}
+
+.player-tags {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    min-width: 45px; /* Ensures tags align even if some have more/less tags */
+}
+
+.player-name {
     font-weight: 600;
-    padding-left: 6px !important;
+    white-space: nowrap;
 }
 
-/* Race cell: reduced left padding to narrow the user-race gap */
+/* Reduced spacing from name to race */
 .race-cell {
-    padding-left: 8px !important;
+    padding-left: 0 !important;
 }
 
 /* Tag badge: SDC-style rounded border, same border and text color */
