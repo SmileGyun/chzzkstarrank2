@@ -345,7 +345,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const trOuter = document.createElement('tr');
             trOuter.innerHTML = `
-                <td><span class="rank-number ${rankClass}">${p.currentRank}</span> ${rankChangeHtml}</td>
+                <td>
+                    <div class="rank-td-content">
+                        <span class="rank-number ${rankClass}">${p.currentRank}</span> ${rankChangeHtml}
+                    </div>
+                </td>
                 <td class="player-info-cell">
                     <div class="player-info-wrapper">
                         <div class="player-tags">${tagsHtml}</div>
