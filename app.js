@@ -160,12 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const playersCol = collection(db, "Players");
         const matchesCol = collection(db, "Matches");
 
-        // 플레이어 데이터 복구 (기존 데이터가 없는 경우에만 한정하여 복구)
-        for (const p of backupPlayers) {
-            const playerRef = doc(db, "Players", p.id);
-            const playerSnap = await getDoc(playerRef);
-            if (!playerSnap.exists()) {
-                console.log(`플레이어 복구: ${p.name}`);
+        // 플레이어 데이터 복구: 컬렉션이 완전히 비어있는 경우에만 백업 데이터로 초기화합니다.
+        const playersSnap = await getDocs(playersCol);
+        if (playersSnap.empty) {
+            console.log("플레이어 데이터 복구 중...");
+            for (const p of backupPlayers) {
+                const playerRef = doc(db, "Players", p.id);
                 await setDoc(playerRef, { ...p, baseRating: p.rating, approvedAt: Date.now() });
             }
         }
