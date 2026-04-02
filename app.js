@@ -715,23 +715,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 모달 닫기 버튼 버그 수정
     document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
-
-    // [임시] 이미 수정된 '제리' -> '제리123' 매치 기록 강제 동기화 (페이지 새로고침 시 1회 실행)
-    (async () => {
-        const matchesSnap = await getDocs(collection(db, "Matches"));
-        const batch = writeBatch(db);
-        let count = 0;
-        matchesSnap.forEach(mDoc => {
-            const d = mDoc.data();
-            let u = false;
-            const winner = {...d.winner}, loser = {...d.loser};
-            if (winner.name === '제리') { winner.name = '제리123'; u = true; }
-            if (loser.name === '제리') { loser.name = '제리123'; u = true; }
-            if (u) { batch.update(mDoc.ref, { winner, loser }); count++; }
-        });
-        if (count > 0) {
-            await batch.commit();
-            console.log(`[!] ${count}개의 '제리' 매치 기록을 '제리123'으로 강제 동기화했습니다.`);
-        }
-    })();
 });
