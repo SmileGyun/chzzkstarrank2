@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { 
     getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, 
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction 
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -634,8 +634,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btn.classList.contains('admin-user-reject')) await deleteDoc(doc(db, "UserReports", id));
         if (btn.classList.contains('admin-save-player')) {
             const row = btn.closest('.admin-edit-row');
-            await updateDoc(doc(db, "Players", id), { name: row.querySelector('.p-name').value, race: row.querySelector('.p-race').value, rating: parseInt(row.querySelector('.p-rating').value), win: parseInt(row.querySelector('.p-win').value), loss: parseInt(row.querySelector('.p-loss').value) });
-            alert('저장 완료');
+            const newName = row.querySelector('.p-name').value;
+            const newRace = row.querySelector('.p-race').value;
+            const newRating = parseInt(row.querySelector('.p-rating').value);
+            const newWin = parseInt(row.querySelector('.p-win').value);
+            const newLoss = parseInt(row.querySelector('.p-loss').value);
+
+            const playerRef = doc(db, "Players", id);
+            const playerSnap = await getDoc(playerRef);
+            const oldName = playerSnap.exists() ? playerSnap.data().name : '';
+
+            // 1. 플레이어 데이터 업데이트
+            await updateDoc(playerRef, { name: newName, race: newRace, rating: newRating, win: newWin, loss: newLoss });
+
+            // 2. 이름이 변경된 경우 모든 매치 기록의 이름도 동기화
+            if (oldName && oldName !== newName) {
+                console.log(`이름 변경 감지: ${oldName} -> ${newName}. 관련 매치 기록 업데이트 중...`);
+                const matchesSnap = await getDocs(collection(db, "Matches"));
+                const batch = writeBatch(db);
+                let updateCount = 0;
+
+                matchesSnap.forEach(mDoc => {
+                    const mData = mDoc.data();
+                    let needsUpdate = false;
+                    const winner = { ...mData.winner };
+                    const loser = { ...mData.loser };
+
+                    if (winner.name === oldName) { winner.name = newName; needsUpdate = true; }
+                    if (loser.name === oldName) { loser.name = newName; needsUpdate = true; }
+
+                    if (needsUpdate) {
+                        batch.update(mDoc.ref, { winner, loser });
+                        updateCount++;
+                    }
+                });
+
+                if (updateCount > 0) {
+                    await batch.commit();
+                    console.log(`${updateCount}개의 매치 기록이 업데이트되었습니다.`);
+                }
+            }
+            alert('저장 완료 (매치 기록 동기화 포함)');
         }
         if (btn.classList.contains('admin-delete-player')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
         if (btn.classList.contains('admin-save-match')) {
