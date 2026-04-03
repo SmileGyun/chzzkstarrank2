@@ -194,6 +194,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const tag of tagDefinitions) {
             await setDoc(doc(db, "Tags", tag.name), { name: tag.name, color: tag.color, members: tag.members });
         }
+
+        // 시스템 상태 초기화 (없을 경우에만)
+        const sysSnap = await getDoc(doc(db, "Settings", "system"));
+        if (!sysSnap.exists()) {
+            await setDoc(doc(db, "Settings", "system"), { status: "online" });
+        }
     }
 
     await migrateToCollections();
@@ -228,6 +234,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
         renderRankingTable();
+    });
+
+    onSnapshot(doc(db, "Settings", "system"), (snap) => {
+        if (snap.exists()) {
+            const status = snap.data().status;
+            const row = document.getElementById('systemStatusRow');
+            const txt = document.getElementById('systemStatusText');
+            const select = document.getElementById('adminSystemStatus');
+            
+            if (status === 'maintenance') {
+                row.className = 'record-row status-gray';
+                txt.textContent = '점검중';
+                if (select) select.value = 'maintenance';
+            } else {
+                row.className = 'record-row status-green';
+                txt.textContent = '정상 운영중';
+                if (select) select.value = 'online';
+            }
+        }
     });
 
     const K_FACTOR = 32;
@@ -564,6 +589,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('adminAuthModal').classList.remove('active'); document.getElementById('adminTabBtn').style.display = 'inline-block'; document.getElementById('adminLoginBtn').style.display = 'none';
             document.getElementById('adminTabBtn').click();
         } else alert('인증 실패');
+    };
+
+    document.getElementById('saveSystemStatusBtn').onclick = async () => {
+        const val = document.getElementById('adminSystemStatus').value;
+        try {
+            await setDoc(doc(db, "Settings", "system"), { status: val });
+            alert('시스템 상태가 변경되었습니다.');
+        } catch (e) {
+            console.error(e);
+            alert('변경 중 오류 발생');
+        }
     };
 
     function renderAdminDashboard() {

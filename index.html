@@ -91,9 +91,9 @@
                         <span class="record-label">등록된 매치</span>
                         <span class="record-value" id="totalMatchesCombined">-</span>
                     </div>
-                    <div class="record-row status-gray">
+                    <div class="record-row" id="systemStatusRow">
                         <span class="record-label">시스템 상태</span>
-                        <span class="record-value">점검중</span>
+                        <span class="record-value" id="systemStatusText">-</span>
                     </div>
                 </div>
             </div>
@@ -201,7 +201,19 @@
                 </div>
                 <div id="admin-site-system" class="admin-content-section" style="display:none;">
                     <div class="admin-list">
-                        <p style="color: var(--text-muted); text-align: center; padding: 2rem;">사이트 환경 설정 및 시스템 기능은 추후 업데이트 예정입니다.</p>
+                        <div class="admin-item">
+                            <div class="admin-item-info">
+                                <div class="admin-item-title">시스템 상태 전환</div>
+                                <div style="font-size:0.85rem; opacity:0.7;">메인 화면의 '시스템 상태' 표시를 변경합니다.</div>
+                            </div>
+                            <div class="admin-actions">
+                                <select id="adminSystemStatus" class="admin-edit-input" style="width: 120px;">
+                                    <option value="online">정상 운영중</option>
+                                    <option value="maintenance">점검중</option>
+                                </select>
+                                <button id="saveSystemStatusBtn" class="admin-btn approve">변경</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
