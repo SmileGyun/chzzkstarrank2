@@ -726,6 +726,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    document.getElementById('resetRankChangeBtn').onclick = async () => {
+        if (!confirm('현재 순위를 기준으로 등락률을 초기화하시겠습니까?\n모든 플레이어의 등락 표시가 "-"로 변경됩니다.')) return;
+        try {
+            calculateRanks();
+            const batch = writeBatch(db);
+            players.forEach(p => {
+                const playerRef = doc(db, "Players", p.id);
+                batch.update(playerRef, { prevRank: p.currentRank });
+            });
+            await batch.commit();
+            alert('등락률이 초기화되었습니다. 현재 순위가 새로운 기준점으로 설정되었습니다.');
+        } catch (e) {
+            console.error('등락률 초기화 오류:', e);
+            alert('초기화 중 오류가 발생했습니다.');
+        }
+    };
+
     function renderAdminDashboard() {
         if(!isAdminLoggedIn) return;
         document.getElementById('pendingMatchesContainer').innerHTML = pendingMatches.map(m => `
@@ -801,7 +818,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const u = pendingUsers.find(x => x.docId === id);
             if(u) {
                 const nid = Date.now().toString();
-                await setDoc(doc(db, "Players", nid), { id: nid, name: u.name, race: u.race, rating: u.rating, win: u.win, loss: u.loss, prevRank: players.length+1, approvedAt: Date.now(), baseRating: u.rating });
+                // 새 유저가 들어갈 순위 계산
+                const newPlayerRank = players.filter(p => p.rating > u.rating).length + 1;
+                
+                // 새 유저보다 레이팅이 낮거나 같은 기존 유저들의 prevRank를 +1 (순위 밀림 보정)
+                const adjustBatch = writeBatch(db);
+                players.forEach(p => {
+                    if (p.rating <= u.rating && p.prevRank) {
+                        adjustBatch.update(doc(db, "Players", p.id), { prevRank: p.prevRank + 1 });
+                    }
+                });
+                
+                await setDoc(doc(db, "Players", nid), { id: nid, name: u.name, race: u.race, rating: u.rating, win: u.win, loss: u.loss, prevRank: newPlayerRank, approvedAt: Date.now(), baseRating: u.rating });
+                await adjustBatch.commit();
                 await deleteDoc(doc(db, "UserReports", id));
                 alert('승인 완료');
             }
