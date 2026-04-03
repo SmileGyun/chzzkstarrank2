@@ -101,6 +101,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let tags = [];
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let searchTerm = '';
+    let notices = [];
+    let currentEditNoticeId = null;
     
     let historyCurrentPage = 1;
     let adminHistoryCurrentPage = 1;
@@ -234,6 +236,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
         renderRankingTable();
+    });
+
+    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc")), (snapshot) => {
+        notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        renderNotices();
     });
 
     onSnapshot(doc(db, "Settings", "system"), (snap) => {
@@ -434,6 +441,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'E';
     }
 
+    function renderNotices() {
+        // Main UI
+        const mainList = document.getElementById('mainNoticeList');
+        const adminList = document.getElementById('adminNoticeContainer');
+        const allList = document.getElementById('allNoticesList');
+
+        const createNoticeHtml = (n) => `
+            <div class="notice-item" data-id="${n.id}">
+                <div class="notice-top">
+                    <span class="notice-tag">${n.category}</span>
+                    <span class="notice-subject">${n.title}</span>
+                </div>
+                <div class="notice-date">${new Date(n.date).toLocaleDateString()}</div>
+            </div>`;
+
+        if (mainList) mainList.innerHTML = notices.slice(0, 3).map(createNoticeHtml).join('');
+        if (adminList) adminList.innerHTML = notices.map(n => `
+            <div class="admin-item" style="cursor:pointer;" onclick="editNotice('${n.id}')">
+                <div class="admin-item-info"><strong>[${n.category}] ${n.title}</strong><div style="font-size:0.8rem; opacity:0.6;">${new Date(n.date).toLocaleString()}</div></div>
+                <div class="admin-actions"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
+            </div>`).join('') || '작성된 공지 없음';
+        
+        if (allList) allList.innerHTML = notices.map(createNoticeHtml).join('');
+
+        // Attach click listeners for main and all list
+        document.querySelectorAll('.notice-item').forEach(item => {
+            item.onclick = () => {
+                const n = notices.find(x => x.id === item.dataset.id);
+                if (n) {
+                    document.getElementById('viewNoticeTitle').textContent = n.title;
+                    document.getElementById('viewNoticeTag').textContent = n.category;
+                    document.getElementById('viewNoticeDate').textContent = new Date(n.date).toLocaleDateString();
+                    document.getElementById('viewNoticeContent').textContent = n.content;
+                    document.getElementById('noticeViewModal').classList.add('active');
+                }
+            };
+        });
+    }
+
+    window.editNotice = (id) => {
+        const n = notices.find(x => x.id === id);
+        if (n) {
+            currentEditNoticeId = n.id;
+            document.getElementById('noticeModalTitle').textContent = '공지 수정';
+            document.getElementById('noticeCategory').value = n.category;
+            document.getElementById('noticeTitle').value = n.title;
+            document.getElementById('noticeContent').value = n.content;
+            document.getElementById('noticeAdminActions').style.display = 'flex';
+            document.getElementById('saveNoticeBtn').style.display = 'none';
+            document.getElementById('noticeWriteModal').classList.add('active');
+        }
+    };
+
     function renderTierTable() {
         tierTableBody.innerHTML = '';
         const tiers = { S: [], A: [], B: [], C: [], D: [], E: [] };
@@ -589,6 +649,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('adminAuthModal').classList.remove('active'); document.getElementById('adminTabBtn').style.display = 'inline-block'; document.getElementById('adminLoginBtn').style.display = 'none';
             document.getElementById('adminTabBtn').click();
         } else alert('인증 실패');
+    };
+
+    document.getElementById('addNoticeBtn').onclick = () => {
+        currentEditNoticeId = null;
+        document.getElementById('noticeModalTitle').textContent = '공지 작성';
+        document.getElementById('noticeCategory').value = '공지';
+        document.getElementById('noticeTitle').value = '';
+        document.getElementById('noticeContent').value = '';
+        document.getElementById('noticeAdminActions').style.display = 'none';
+        document.getElementById('saveNoticeBtn').style.display = 'block';
+        document.getElementById('noticeWriteModal').classList.add('active');
+    };
+
+    document.getElementById('saveNoticeBtn').onclick = async () => {
+        const cat = document.getElementById('noticeCategory').value;
+        const title = document.getElementById('noticeTitle').value.trim();
+        const content = document.getElementById('noticeContent').value.trim();
+        if (!title || !content) return alert('제목과 내용을 입력해 주세요.');
+        
+        await addDoc(collection(db, "Notices"), { category: cat, title, content, date: Date.now() });
+        document.getElementById('noticeWriteModal').classList.remove('active');
+        alert('공지가 등록되었습니다.');
+    };
+
+    document.getElementById('updateNoticeBtn').onclick = async () => {
+        if (!currentEditNoticeId) return;
+        const cat = document.getElementById('noticeCategory').value;
+        const title = document.getElementById('noticeTitle').value.trim();
+        const content = document.getElementById('noticeContent').value.trim();
+        
+        await updateDoc(doc(db, "Notices", currentEditNoticeId), { category: cat, title, content });
+        document.getElementById('noticeWriteModal').classList.remove('active');
+        alert('공지가 수정되었습니다.');
+    };
+
+    document.getElementById('deleteNoticeBtn').onclick = async () => {
+        if (!currentEditNoticeId || !confirm('공지를 삭제하시겠습니까?')) return;
+        await deleteDoc(doc(db, "Notices", currentEditNoticeId));
+        document.getElementById('noticeWriteModal').classList.remove('active');
+        alert('공지가 삭제되었습니다.');
+    };
+
+    document.getElementById('viewAllNoticesBtn').onclick = () => {
+        renderNotices();
+        document.getElementById('allNoticesModal').classList.add('active');
     };
 
     document.getElementById('saveSystemStatusBtn').onclick = async () => {

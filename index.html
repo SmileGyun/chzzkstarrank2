@@ -51,30 +51,15 @@
             <div class="card notice-card" id="leftStatsCard">
                 <div class="card-header">
                     <div class="card-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg></div>
-                    <span class="card-title">Notice</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button id="viewAllNoticesBtn" class="more-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                        <span class="card-title">Notice</span>
+                    </div>
                 </div>
-                <div class="notice-list">
-                    <div class="notice-item">
-                        <div class="notice-top">
-                            <span class="notice-tag">공지</span>
-                            <span class="notice-subject">이제 유저 옆에 태그가 추가 되었습니다 <span class="new-badge">N</span></span>
-                        </div>
-                        <div class="notice-date">태그는 추후에도 계속 추가될 예정입니다</div>
-                    </div>
-                    <div class="notice-item">
-                        <div class="notice-top">
-                            <span class="notice-tag">안내</span>
-                            <span class="notice-subject">매치 결과 제보 가이드</span>
-                        </div>
-                        <div class="notice-date">방송 중 매치를 권장드리고 부종전은 삭제하겠습니다.</div>
-                    </div>
-                    <div class="notice-item">
-                        <div class="notice-top">
-                            <span class="notice-tag">패치</span>
-                            <span class="notice-subject">ELO 레이팅 시스템 소규모 업데이트</span>
-                        </div>
-                        <div class="notice-date">신규 유입 유저의 레이팅 보정 수치가 조정되었습니다.</div>
-                    </div>
+                <div class="notice-list" id="mainNoticeList">
+                    <!-- Dynamic Notices Injected Here -->
                 </div>
             </div>
             <div class="card">
@@ -179,7 +164,7 @@
                     <div class="admin-grid-card" data-target="admin-pending-users">유저 제보</div>
                     <div class="admin-grid-card" data-target="admin-edit-ranking">순위</div>
                     <div class="admin-grid-card" data-target="admin-edit-history">매치 기록</div>
-                    <div class="admin-grid-card" data-target="admin-edit-tier">공지 작성</div>
+                    <div class="admin-grid-card" data-target="admin-notices">공지 작성</div>
                     <div class="admin-grid-card" data-target="admin-site-system">사이트 시스템</div>
                 </div>
                 
@@ -196,8 +181,11 @@
                     <div id="adminHistoryContainer" class="admin-list"></div>
                     <div id="adminHistoryPagination" class="pagination"></div>
                 </div>
-                <div id="admin-edit-tier" class="admin-content-section" style="display:none;">
-                    <div id="adminTierContainer" class="admin-list"></div>
+                <div id="admin-notices" class="admin-content-section" style="display:none;">
+                    <div class="admin-header-actions" style="margin-bottom: 1.5rem;">
+                        <button id="addNoticeBtn" class="report-btn">공지 작성하기</button>
+                    </div>
+                    <div id="adminNoticeContainer" class="admin-list"></div>
                 </div>
                 <div id="admin-site-system" class="admin-content-section" style="display:none;">
                     <div class="admin-list">
@@ -324,6 +312,68 @@
                     <input type="password" id="adminPw" placeholder="PASSWORD">
                 </div>
                 <button id="submitAdminLoginBtn" class="submit-btn" style="background-color: var(--race-protoss); color: #000;">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="noticeWriteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="noticeModalTitle">공지 작성</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>말머리 선택</label>
+                    <select id="noticeCategory">
+                        <option value="공지">공지</option>
+                        <option value="안내">안내</option>
+                        <option value="패치">패치</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>제목</label>
+                    <input type="text" id="noticeTitle" placeholder="제목을 입력해 주세요.">
+                </div>
+                <div class="form-group">
+                    <label>내용</label>
+                    <textarea id="noticeContent" rows="10" placeholder="내용을 입력하세요." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-main); padding: 1rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div id="noticeAdminActions" style="display:none; gap:10px; margin-bottom:1rem;">
+                    <button id="updateNoticeBtn" class="submit-btn" style="flex:1;">수정</button>
+                    <button id="deleteNoticeBtn" class="submit-btn" style="flex:1; background-color: #ef4444; color: white;">삭제</button>
+                </div>
+                <button id="saveNoticeBtn" class="submit-btn">등록하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="noticeViewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="viewNoticeTitle">공지 제목</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="notice-view-meta" style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <span id="viewNoticeTag" class="notice-tag">공지</span>
+                    <span id="viewNoticeDate" class="notice-date">날짜</span>
+                </div>
+                <div id="viewNoticeContent" class="notice-view-content" style="white-space: pre-wrap; line-height: 1.8; color: var(--text-main); min-height: 200px; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem;">
+                    <!-- Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="allNoticesModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>공지사항 전체보기</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="allNoticesList" class="notice-list"></div>
             </div>
         </div>
     </div>
