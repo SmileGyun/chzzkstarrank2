@@ -91,9 +91,9 @@
                         <span class="record-label">등록된 매치</span>
                         <span class="record-value" id="totalMatchesCombined">-</span>
                     </div>
-                    <div class="record-row status-green">
+                    <div class="record-row status-gray">
                         <span class="record-label">시스템 상태</span>
-                        <span class="record-value">정상 운영중</span>
+                        <span class="record-value">점검중</span>
                     </div>
                 </div>
             </div>
@@ -180,6 +180,7 @@
                     <div class="admin-grid-card" data-target="admin-edit-ranking">순위</div>
                     <div class="admin-grid-card" data-target="admin-edit-history">매치 기록</div>
                     <div class="admin-grid-card" data-target="admin-edit-tier">공지 작성</div>
+                    <div class="admin-grid-card" data-target="admin-site-system">사이트 시스템</div>
                 </div>
                 
                 <div id="admin-pending-matches" class="admin-content-section">
@@ -197,6 +198,11 @@
                 </div>
                 <div id="admin-edit-tier" class="admin-content-section" style="display:none;">
                     <div id="adminTierContainer" class="admin-list"></div>
+                </div>
+                <div id="admin-site-system" class="admin-content-section" style="display:none;">
+                    <div class="admin-list">
+                        <p style="color: var(--text-muted); text-align: center; padding: 2rem;">사이트 환경 설정 및 시스템 기능은 추후 업데이트 예정입니다.</p>
+                    </div>
                 </div>
             </div>
         </section>

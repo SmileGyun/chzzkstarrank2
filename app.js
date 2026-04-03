@@ -219,6 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
+
     onSnapshot(collection(db, "UserReports"), (snapshot) => {
         pendingUsers = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
         if (isAdminLoggedIn) renderAdminDashboard();

@@ -1138,10 +1138,12 @@ body {
 .status-blue .record-value { color: #3b82f6; }
 .status-purple .record-value { color: #a855f7; }
 .status-green .record-value { color: var(--accent-green); }
+.status-gray .record-value { color: var(--text-muted); }
 
 
 .hall-of-fame .card-title {
     color: #fbbf24;
+    font-size: 0.7rem;
 }
 
 .hall-of-fame .record-row::before {
