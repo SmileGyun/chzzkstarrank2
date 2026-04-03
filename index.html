@@ -18,7 +18,8 @@
                 <button class="nav-btn" data-tab="history">매치 기록</button>
                 <button class="nav-btn" data-tab="tier">티어표</button>
             </nav>
-            <div class="nav-right">
+            <div class="nav-right" style="gap: 1.5rem;">
+                <button class="nav-btn" id="inquiryBtn" style="color:var(--text-main);">문의하기</button>
                 <button class="nav-btn" id="adminLoginBtn" style="color:#60a5fa;">관리자</button>
                 <button class="nav-btn" id="adminTabBtn" data-tab="admin" style="display:none; color:#60a5fa;">관리자</button>
             </div>
@@ -166,6 +167,7 @@
                     <div class="admin-grid-card" data-target="admin-edit-history">매치 기록</div>
                     <div class="admin-grid-card" data-target="admin-notices">공지 작성</div>
                     <div class="admin-grid-card" data-target="admin-site-system">사이트 시스템</div>
+                    <div class="admin-grid-card" data-target="admin-inquiries">문의</div>
                 </div>
                 
                 <div id="admin-pending-matches" class="admin-content-section">
@@ -203,6 +205,9 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div id="admin-inquiries" class="admin-content-section" style="display:none;">
+                    <div id="adminInquiriesContainer" class="admin-list"></div>
                 </div>
             </div>
         </section>
@@ -374,6 +379,30 @@
             </div>
             <div class="modal-body">
                 <div id="allNoticesList" class="notice-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="inquiryModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>문의하기</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>작성자 (선택)</label>
+                    <input type="text" id="inquiryAuthor" placeholder="닉네임 (익명 가능)">
+                </div>
+                <div class="form-group">
+                    <label>문의 내용</label>
+                    <textarea id="inquiryMessage" rows="6" placeholder="문의나 건의사항을 남겨주세요." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-main); padding: 1rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="info-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>문의 내용은 관리자만 확인할 수 있습니다.</span>
+                </div>
+                <button id="submitInquiryBtn" class="submit-btn" style="background-color: var(--race-terran); color: #fff;">보내기</button>
             </div>
         </div>
     </div>

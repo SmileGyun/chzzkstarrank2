@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isAdminLoggedIn = sessionStorage.getItem('chzzk_admin') === 'true';
     let searchTerm = '';
     let notices = [];
+    let inquiries = [];
     let currentEditNoticeId = null;
     
     let historyCurrentPage = 1;
@@ -241,6 +242,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc")), (snapshot) => {
         notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderNotices();
+    });
+
+    onSnapshot(query(collection(db, "Inquiries"), orderBy("date", "desc")), (snapshot) => {
+        inquiries = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        if(isAdminLoggedIn) renderAdminDashboard();
     });
 
     onSnapshot(doc(db, "Settings", "system"), (snap) => {
@@ -617,7 +623,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     document.getElementById('reportBtn').onclick = () => document.getElementById('reportModal').classList.add('active');
+    document.getElementById('inquiryBtn').onclick = () => document.getElementById('inquiryModal').classList.add('active');
     document.querySelectorAll('.close-btn').forEach(b => b.onclick = () => b.closest('.modal').classList.remove('active'));
+
+    document.getElementById('submitInquiryBtn').onclick = async () => {
+        const author = document.getElementById('inquiryAuthor').value.trim() || '익명';
+        const msg = document.getElementById('inquiryMessage').value.trim();
+        if (!msg) return alert('문의 내용을 입력해 주세요.');
+        
+        await addDoc(collection(db, "Inquiries"), { author, message: msg, date: Date.now() });
+        document.getElementById('inquiryAuthor').value = '';
+        document.getElementById('inquiryMessage').value = '';
+        document.getElementById('inquiryModal').classList.remove('active');
+        alert('문의가 성공적으로 접수되었습니다. 감사합니다.');
+    };
 
     document.getElementById('submitMatchBtn').onclick = async () => {
         const title = document.getElementById('matchTitle').value, w = winnerSelect.value, l = loserSelect.value;
@@ -747,6 +766,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminHistoryCurrentPage = page;
             renderAdminDashboard();
         });
+
+        const inqContainer = document.getElementById('adminInquiriesContainer');
+        if (inqContainer) {
+            inqContainer.innerHTML = inquiries.map(iq => `
+                <div class="admin-item" style="flex-direction:column; align-items:start;">
+                    <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <strong style="color:var(--text-main);">${iq.author}</strong>
+                        <span style="font-size:0.8rem; opacity:0.6;">${new Date(iq.date).toLocaleString()}</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; width: 100%; margin-bottom: 0.5rem; white-space: pre-wrap; color: rgba(255,255,255,0.8);">${iq.message}</div>
+                    <button class="admin-btn delete admin-delete-inquiry" data-id="${iq.id}" style="align-self: flex-end;">삭제</button>
+                </div>
+            `).join('') || '접수된 문의가 없습니다.';
+        }
     }
 
     document.getElementById('tab-admin').onclick = async (e) => {
@@ -845,6 +878,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 await deleteDoc(doc(db, "Matches", id));
                 alert('경기 기록 및 선수 데이터가 복구되었습니다.');
+            }
+        }
+        if (btn.classList.contains('admin-delete-inquiry')) {
+            if(confirm('이 문의 내역을 삭제하시겠습니까?')) {
+                await deleteDoc(doc(db, "Inquiries", id));
+                alert('삭제되었습니다.');
             }
         }
     };
