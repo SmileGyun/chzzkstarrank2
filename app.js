@@ -89,9 +89,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- [태그 정의 데이터] ---
     const tagDefinitions = [
-        { name: "SDC", color: "#ff0000", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
+        { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
-        { name: "스악귀", color: "#f87171", members: ["나브자크"] }
+        { name: "스악귀", color: "#ff0000", members: ["나브자크"] }
     ];
 
     let players = backupPlayers.map(p => ({ ...p }));
