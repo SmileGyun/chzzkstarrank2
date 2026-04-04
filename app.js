@@ -91,7 +91,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tagDefinitions = [
         { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
-        { name: "스악귀", color: "#ff0000", members: ["나브자크"] }
+        { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
+        { name: "치즈캠퍼스", color: "#faa81a", members: [] }
     ];
 
     let players = backupPlayers.map(p => ({ ...p }));
@@ -193,9 +194,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // 새 태그 정의를 항상 최신 상태로 덮어쓰기
+        // 새 태그 정의를 반영하되, 기존 멤버 데이터는 덮어쓰지 않도록 수정
         for (const tag of tagDefinitions) {
-            await setDoc(doc(db, "Tags", tag.name), { name: tag.name, color: tag.color, members: tag.members });
+            const tagRef = doc(db, "Tags", tag.name);
+            const tagSnap = await getDoc(tagRef);
+            if (!tagSnap.exists()) {
+                await setDoc(tagRef, { name: tag.name, color: tag.color, members: tag.members });
+            } else {
+                await updateDoc(tagRef, { color: tag.color }); // 색상 정보만 업데이트
+            }
         }
 
         // 시스템 상태 초기화 (없을 경우에만)
@@ -756,15 +763,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="admin-actions"><button class="admin-btn approve admin-user-approve" data-id="${u.docId}">승인</button><button class="admin-btn reject admin-user-reject" data-id="${u.docId}">거절</button></div>
             </div>`).join('') || '대기열 없음';
 
-        document.getElementById('adminRankingContainer').innerHTML = players.map(p => `
+        document.getElementById('adminRankingContainer').innerHTML = players.map(p => {
+            const playerTag = getPlayerTags(p.name)[0]?.name || '';
+            const tagSelectHtml = `<select class="admin-edit-input p-tag" data-id="${p.id}" style="width:80px;">
+                <option value="">태그 없음</option>
+                ${tags.map(t => `<option value="${t.name}" ${playerTag === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
+            </select>`;
+            return `
             <div class="admin-item" style="flex-direction:column; align-items:start;"><div class="admin-edit-row">
                 <input type="text" class="admin-edit-input p-name" data-id="${p.id}" value="${p.name}" style="width:100px;">
                 <select class="admin-edit-input p-race" data-id="${p.id}"><option value="Zerg" ${p.race==='Zerg'?'selected':''}>Z</option><option value="Protoss" ${p.race==='Protoss'?'selected':''}>P</option><option value="Terran" ${p.race==='Terran'?'selected':''}>T</option><option value="Random" ${p.race==='Random'?'selected':''}>R</option></select>
                 <input type="number" class="admin-edit-input p-rating" data-id="${p.id}" value="${Math.round(p.rating)}" style="width:80px;">
                 <input type="number" class="admin-edit-input p-win" data-id="${p.id}" value="${p.win}" style="width:60px;">
                 <input type="number" class="admin-edit-input p-loss" data-id="${p.id}" value="${p.loss}" style="width:60px;">
+                ${tagSelectHtml}
                 <button class="admin-btn approve admin-save-player" data-id="${p.id}">저장</button><button class="admin-btn delete admin-delete-player" data-id="${p.id}">삭제</button>
-            </div></div>`).join('');
+            </div></div>`;
+        }).join('');
 
         const totalHistoryItems = matchHistory.length;
         const totalHistoryPages = Math.ceil(totalHistoryItems / ITEMS_PER_PAGE);
@@ -843,6 +858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newRating = parseInt(row.querySelector('.p-rating').value);
             const newWin = parseInt(row.querySelector('.p-win').value);
             const newLoss = parseInt(row.querySelector('.p-loss').value);
+            const newTag = row.querySelector('.p-tag').value;
 
             const playerRef = doc(db, "Players", id);
             const playerSnap = await getDoc(playerRef);
@@ -850,6 +866,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 1. 플레이어 데이터 업데이트
             await updateDoc(playerRef, { name: newName, race: newRace, rating: newRating, win: newWin, loss: newLoss });
+
+            // 1.5. 태그 멤버십 업데이트
+            const _tagsSnap = await getDocs(collection(db, "Tags"));
+            const tagBatch = writeBatch(db);
+            let hasTagUpdates = false;
+
+            _tagsSnap.forEach(tDoc => {
+                const tData = tDoc.data();
+                let members = tData.members || [];
+                const originalLength = members.length;
+                
+                // 기존 이름이나 새 이름으로 된 태그에서 제거
+                members = members.filter(m => m !== (oldName || newName) && m !== newName);
+                
+                // 새로 선택된 태그에 이름 추가
+                if (tData.name === newTag) {
+                    members.push(newName);
+                }
+                
+                // 변경사항이 있으면 배치에 추가
+                if (members.length !== originalLength || (tData.name === newTag && !tData.members?.includes(newName))) {
+                    tagBatch.update(tDoc.ref, { members: members });
+                    hasTagUpdates = true;
+                }
+            });
+
+            if (hasTagUpdates) {
+                await tagBatch.commit();
+            }
 
             // 2. 이름이 변경된 경우 모든 매치 기록의 이름도 동기화
             if (oldName && oldName !== newName) {
