@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
-        { name: "치즈캠퍼스", color: "#faa81a", members: [] }
+        { name: "치즈캠", color: "#faa81a", members: [] }
     ];
 
     let players = backupPlayers.map(p => ({ ...p }));
