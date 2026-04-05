@@ -759,10 +759,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('공지가 삭제되었습니다.');
     };
 
-    document.getElementById('viewAllNoticesBtn').onclick = () => {
-        renderNotices();
-        document.getElementById('allNoticesModal').classList.add('active');
-    };
+    const viewAllNoticesBtn = document.getElementById('viewAllNoticesBtn');
+    if (viewAllNoticesBtn) {
+        viewAllNoticesBtn.onclick = () => {
+            renderNotices();
+            document.getElementById('allNoticesModal').classList.add('active');
+        };
+    }
 
     document.getElementById('saveSystemStatusBtn').onclick = async () => {
         const val = document.getElementById('adminSystemStatus').value;
