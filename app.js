@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    await migrateToCollections();
+    // await migrateToCollections();
 
     // --- [실시간 리스너] ---
     onSnapshot(collection(db, "Players"), (snapshot) => {
@@ -244,6 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
         renderRankingTable();
+        if (isAdminLoggedIn) renderAdminDashboard();
     });
 
     onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc")), (snapshot) => {
