@@ -230,16 +230,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(collection(db, "MatchReports"), (snapshot) => {
-        pendingMatches = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-        if (isAdminLoggedIn) renderAdminDashboard();
-    });
+    let adminListenersInitialized = false;
+    function initAdminListeners() {
+        if (adminListenersInitialized) return;
+        adminListenersInitialized = true;
 
+        onSnapshot(collection(db, "MatchReports"), (snapshot) => {
+            pendingMatches = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+            if (isAdminLoggedIn) renderAdminDashboard();
+        });
 
-    onSnapshot(collection(db, "UserReports"), (snapshot) => {
-        pendingUsers = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-        if (isAdminLoggedIn) renderAdminDashboard();
-    });
+        onSnapshot(collection(db, "UserReports"), (snapshot) => {
+            pendingUsers = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+            if (isAdminLoggedIn) renderAdminDashboard();
+        });
+
+        onSnapshot(query(collection(db, "Inquiries"), orderBy("date", "desc")), (snapshot) => {
+            inquiries = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            if(isAdminLoggedIn) renderAdminDashboard();
+        });
+    }
+
+    if (isAdminLoggedIn) {
+        initAdminListeners();
+    }
 
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
@@ -250,11 +264,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc")), (snapshot) => {
         notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderNotices();
-    });
-
-    onSnapshot(query(collection(db, "Inquiries"), orderBy("date", "desc")), (snapshot) => {
-        inquiries = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        if(isAdminLoggedIn) renderAdminDashboard();
     });
 
     onSnapshot(doc(db, "Settings", "system"), (snap) => {
@@ -673,6 +682,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const id = document.getElementById('adminId').value, pw = document.getElementById('adminPw').value;
         if (btoa(id) === 'c2RjbWFuYWdlcg==' && btoa(pw) === 'c3RhcmRldmlsMUA=') {
             isAdminLoggedIn = true; sessionStorage.setItem('chzzk_admin', 'true');
+            initAdminListeners();
             document.getElementById('adminAuthModal').classList.remove('active'); document.getElementById('adminTabBtn').style.display = 'inline-block'; document.getElementById('adminLoginBtn').style.display = 'none';
             document.getElementById('adminTabBtn').click();
         } else alert('인증 실패');
