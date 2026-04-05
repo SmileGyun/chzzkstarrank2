@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(5)), (snapshot) => {
+    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(4)), (snapshot) => {
         notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderNotices();
     });
