@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(30)), (snapshot) => {
+    onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(40)), (snapshot) => {
         matchHistory = snapshot.docs.map(doc => doc.data());
         // 실시간 리스너는 이미 정렬된 데이터를 주지만, 혹시 모를 로컬 정렬
         matchHistory.sort((a, b) => b.id - a.id);
@@ -241,9 +241,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(doc(db, "Settings", "stats"), (snap) => {
+    onSnapshot(doc(db, "Settings", "stats"), async (snap) => {
         if (snap.exists()) {
             totalMatchesCount = snap.data().totalMatches || 0;
+            renderStats();
+        } else {
+            // 통계 문서가 없으면 최초 1회 전체 경기 수를 카운트하여 생성 (이후에는 작동 안함)
+            const matchesSnapCount = await getDocs(collection(db, "Matches"));
+            const size = matchesSnapCount.size;
+            await setDoc(doc(db, "Settings", "stats"), { totalMatches: size });
+            totalMatchesCount = size;
             renderStats();
         }
     });
