@@ -188,6 +188,15 @@
                 </div>
                 <div id="admin-site-system" class="admin-content-section" style="display:none;">
                     <div class="admin-list">
+                        <div class="admin-item" style="border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.05);">
+                            <div class="admin-item-info">
+                                <div class="admin-item-title" style="color:#60a5fa;">전체 전적 동기화 (Sync)</div>
+                                <div style="font-size:0.85rem; opacity:0.8;">할당량 제한으로 인해 전적이 부정확할 경우 사용하세요.<br>모든 매치 기록을 읽어 레이팅과 승패를 재계산합니다.</div>
+                            </div>
+                            <div class="admin-actions">
+                                <button id="syncAllStatsBtn" class="admin-btn approve" style="padding: 0.8rem 1.5rem;">지금 동기화</button>
+                            </div>
+                        </div>
                         <div class="admin-item">
                             <div class="admin-item-info">
                                 <div class="admin-item-title">시스템 상태 전환</div>
@@ -201,13 +210,13 @@
                                 <button id="saveSystemStatusBtn" class="admin-btn approve">변경</button>
                             </div>
                         </div>
-                        <div class="admin-item">
+                        <div class="admin-item" style="border: 1px dashed #ef4444;">
                             <div class="admin-item-info">
-                                <div class="admin-item-title">등락률 초기화</div>
+                                <div class="admin-item-title" style="color:#ef4444;">등락률 초기화</div>
                                 <div style="font-size:0.85rem; opacity:0.7;">현재 순위를 기준점으로 설정하여 모든 등락 표시를 초기화합니다.</div>
                             </div>
                             <div class="admin-actions">
-                                <button id="resetRankChangeBtn" class="admin-btn approve" style="background: #f59e0b;">초기화</button>
+                                <button id="resetRankChangeBtn" class="admin-btn approve" style="background: #ef4444; color:white;">초기화 실행</button>
                             </div>
                         </div>
                     </div>

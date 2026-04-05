@@ -395,10 +395,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return total === 0 ? '0%' : Math.round((win / total) * 100) + '%';
     }
 
-    function isNewUser(approvedAt) {
-        if (!approvedAt) return false;
-        return (Date.now() - approvedAt) < (24 * 60 * 60 * 1000);
-    }
 
     function getPlayerTags(playerName) {
         return tags.filter(t => t.members && t.members.includes(playerName));
@@ -418,7 +414,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 rankChangeHtml = `<span class="rank-change change-down">▼ ${p.currentRank - p.prevRank}</span>`;
             }
 
-            const newBadge = isNewUser(p.approvedAt) ? '<span class="new-badge">N</span>' : '';
+
             const playerTags = getPlayerTags(p.name);
             const tagsHtml = playerTags.map(t =>
                 `<span class="tag-badge" style="color:${t.color}; border-color:${t.color};">${t.name}</span>`
@@ -434,7 +430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td class="player-info-cell">
                     <div class="player-info-wrapper">
                         <div class="player-tags">${tagsHtml}</div>
-                        <span class="player-name">${newBadge}${p.name}</span>
+                        <span class="player-name">${p.name}</span>
                     </div>
                 </td>
                 <td class="race-cell"><span class="race-badge ${p.race.toLowerCase()}">${p.race}</span></td>
@@ -551,7 +547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             let plHtml = '<div class="tier-row-content">';
             tiers[t].forEach(p => {
                 const isH = searchTerm && p.name.toLowerCase().includes(searchTerm) ? 'highlight' : '';
-                plHtml += `<div class="tier-player-item ${isH}">${isNewUser(p.approvedAt)?'<span class="new-badge tier-badge">N</span>':''}${p.name} (${p.race.charAt(0)})</div>`;
+                plHtml += `<div class="tier-player-item ${isH}">${p.name} (${p.race.charAt(0)})</div>`;
             });
             plHtml += '</div>';
             tr.innerHTML = `<td class="tier-${t.toLowerCase()}">${t}</td><td colspan="5">${plHtml}</td>`;
@@ -792,6 +788,89 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.error('등락률 초기화 오류:', e);
             alert('초기화 중 오류가 발생했습니다.');
+        }
+    };
+
+    document.getElementById('syncAllStatsBtn').onclick = async () => {
+        if (!confirm('DB의 모든 매치 기록을 읽어 전체 플레이어의 레이팅과 전적을 재계산하시겠습니까?\n이 작업은 모든 매치 건수만큼 읽기 횟수가 발생하지만, 한 번 완료되면 메인 화면 전적이 최신화됩니다.')) return;
+        
+        const btn = document.getElementById('syncAllStatsBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '동기화 중...';
+
+        try {
+            // 1. 모든 매치 기록 가져오기 (오름차순으로 정렬하여 과거부터 현재까지 순차 적용)
+            const matchesSnap = await getDocs(query(collection(db, "Matches"), orderBy("id", "asc")));
+            const allMatches = matchesSnap.docs.map(d => d.data());
+            
+            // 2. 플레이어 기초 정보 맵 생성
+            // 백업 유저 정보로 초기화 (baseRating을 초기 레이팅으로 사용)
+            const playerStats = {};
+            backupPlayers.forEach(p => {
+                playerStats[p.name] = { 
+                    id: p.id, 
+                    rating: p.rating, // 백업 데이터의 초기 레이팅
+                    win: 0, 
+                    loss: 0 
+                };
+            });
+
+            // Firestore에 추가된 신규 유저들도 포함
+            players.forEach(p => {
+                if (!playerStats[p.name]) {
+                    playerStats[p.name] = { 
+                        id: p.id, 
+                        rating: p.baseRating || 1200, 
+                        win: 0, 
+                        loss: 0 
+                    };
+                }
+            });
+
+            // 3. 모든 매치 순차 적용 (Elo 레이팅 재계산)
+            allMatches.forEach(m => {
+                const winner = playerStats[m.winner.name];
+                const loser = playerStats[m.loser.name];
+                
+                if (winner && loser) {
+                    const p1 = 1 / (1 + Math.pow(10, (loser.rating - winner.rating) / 400));
+                    // 매치 기록에 저장된 delta 값을 우선 사용 (없을 경우 K=32 적용)
+                    const deltaStr = m.winner.delta.toString().replace('+', '').replace('-', '');
+                    const delta = parseInt(deltaStr) || Math.round(32 * (1 - p1));
+                    
+                    winner.rating += delta;
+                    winner.win += 1;
+                    loser.rating -= delta;
+                    loser.loss += 1;
+                }
+            });
+
+            // 4. Firestore에 일괄 업데이트 (Batch 사용으로 효율성 증대)
+            const batch = writeBatch(db);
+            Object.keys(playerStats).forEach(name => {
+                const ps = playerStats[name];
+                const pRef = doc(db, "Players", ps.id);
+                // 실시간 리스너를 통해 UI에 반영되도록 업데이트
+                batch.update(pRef, {
+                    rating: ps.rating,
+                    win: ps.win,
+                    loss: ps.loss
+                });
+            });
+            
+            // 전체 매치 카운트도 최신화
+            const statsRef = doc(db, "Settings", "stats");
+            batch.update(statsRef, { totalMatches: allMatches.length });
+
+            await batch.commit();
+            alert(`동기화 완료! 총 ${allMatches.length}개의 매치를 반영하여 전적을 최신 상태로 복구했습니다.`);
+        } catch (e) {
+            console.error("동기화 실패:", e);
+            alert('동기화 처리 과정에서 오류가 발생했습니다.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
     };
 
