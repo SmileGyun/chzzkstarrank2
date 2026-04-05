@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(4)), (snapshot) => {
+    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(3)), (snapshot) => {
         notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderNotices();
     });
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="notice-date">${new Date(n.date).toLocaleDateString()}</div>
             </div>`;
 
-        if (mainList) mainList.innerHTML = notices.slice(0, 3).map(createNoticeHtml).join('');
+        if (mainList) mainList.innerHTML = notices.map(createNoticeHtml).join('');
         if (adminList) adminList.innerHTML = notices.map(n => `
             <div class="admin-item" style="cursor:pointer;" onclick="editNotice('${n.id}')">
                 <div class="admin-item-info"><strong>[${n.category}] ${n.title}</strong><div style="font-size:0.8rem; opacity:0.6;">${new Date(n.date).toLocaleString()}</div></div>
