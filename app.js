@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     let historyCurrentPage = 1;
     let adminHistoryCurrentPage = 1;
+    let totalMatchesCount = backupMatches.length; // 초기값
     const ITEMS_PER_PAGE = 20;
 
     function renderPagination(containerId, totalItems, currentPage, onPageChange) {
@@ -210,6 +211,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!sysSnap.exists()) {
             await setDoc(doc(db, "Settings", "system"), { status: "online" });
         }
+
+        // 통계 데이터 초기화
+        const statsSnap = await getDoc(doc(db, "Settings", "stats"));
+        if (!statsSnap.exists()) {
+            const matchesSnapCount = await getDocs(collection(db, "Matches"));
+            await setDoc(doc(db, "Settings", "stats"), { totalMatches: matchesSnapCount.size });
+        }
     }
 
     // await migrateToCollections();
@@ -222,12 +230,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(collection(db, "Matches"), (snapshot) => {
+    onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(30)), (snapshot) => {
         matchHistory = snapshot.docs.map(doc => doc.data());
+        // 실시간 리스너는 이미 정렬된 데이터를 주지만, 혹시 모를 로컬 정렬
         matchHistory.sort((a, b) => b.id - a.id);
         renderHistory();
         renderStats();
         if (isAdminLoggedIn) renderAdminDashboard();
+    });
+
+    onSnapshot(doc(db, "Settings", "stats"), (snap) => {
+        if (snap.exists()) {
+            totalMatchesCount = snap.data().totalMatches || 0;
+            renderStats();
+        }
     });
 
     let adminListenersInitialized = false;
@@ -329,8 +345,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderStats() {
         totalPlayersEl.textContent = players.length;
-        totalMatchesEl.textContent = matchHistory.length;
-        historyCountEl.textContent = matchHistory.length;
+        totalMatchesEl.textContent = totalMatchesCount;
+        historyCountEl.textContent = totalMatchesCount;
         
         if (players.length > 0) {
             // 레이팅 1등 (이미 정렬되어 있음)
@@ -590,6 +606,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     date: new Date().toLocaleString('ko-KR'),
                     winner: { name: winnerData.name, delta: `+${delta}` },
                     loser: { name: loserData.name, delta: `-${delta}` }
+                });
+
+                // 5. 전체 매치 카운터 업데이트
+                const statsRef = doc(db, "Settings", "stats");
+                transaction.update(statsRef, {
+                    totalMatches: increment(1)
                 });
             });
             return true;
