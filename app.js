@@ -858,6 +858,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('tab-admin').onclick = async (e) => {
         if (!isAdminLoggedIn) return;
+        
+        // 1. 관리자 그리드 메뉴 전환 처리 (메뉴 버튼 클릭)
+        const card = e.target.closest('.admin-grid-card');
+        if (card && card.dataset.target) {
+            document.querySelectorAll('.admin-grid-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.admin-content-section').forEach(s => s.style.display = 'none');
+            card.classList.add('active');
+            const targetContent = document.getElementById(card.dataset.target);
+            if (targetContent) targetContent.style.display = 'block';
+            return; // 메뉴 전환 시에는 아래 버튼 로직 실행 안함
+        }
+
+        // 2. 관리자 액션 버튼 처리 (승인, 삭제, 저장 등)
         const btn = e.target.closest('.admin-btn');
         if (!btn || !btn.dataset.id) return;
         const id = btn.dataset.id;
@@ -1004,12 +1017,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    document.querySelectorAll('.admin-grid-card').forEach(card => card.addEventListener('click', () => {
-        document.querySelectorAll('.admin-grid-card').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.admin-content-section').forEach(s => s.style.display = 'none');
-        card.classList.add('active'); document.getElementById(card.dataset.target).style.display = 'block';
-    }));
-
     // 모달 닫기 버튼 버그 수정
-    document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('userDetailsModal').classList.remove('active');
+    const closeDetailBtn = document.getElementById('closeDetailModalBtn');
+    if (closeDetailBtn) {
+        closeDetailBtn.onclick = () => {
+            const modal = document.getElementById('userDetailsModal');
+            if (modal) modal.classList.remove('active');
+        };
+    }
 });
