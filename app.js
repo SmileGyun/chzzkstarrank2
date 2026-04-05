@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { 
-    getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, 
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc, 
     collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
@@ -15,7 +15,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     // --- [사용자 백업 데이터] ---
@@ -277,7 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc")), (snapshot) => {
+    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(5)), (snapshot) => {
         notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderNotices();
     });
