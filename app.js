@@ -1,22 +1,22 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { 
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc, 
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or 
+import {
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc,
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB-VCW6uxyAq7od_Pn6RmRXQLMXwgEZce4",
-  authDomain: "chzzkstarrank2.firebaseapp.com",
-  projectId: "chzzkstarrank2",
-  storageBucket: "chzzkstarrank2.firebasestorage.app",
-  messagingSenderId: "562699734602",
-  appId: "1:562699734602:web:d620c22e90e5a9ef88a0b3",
-  measurementId: "G-R17QH907Y6"
+    apiKey: "AIzaSyB-VCW6uxyAq7od_Pn6RmRXQLMXwgEZce4",
+    authDomain: "chzzkstarrank2.firebaseapp.com",
+    projectId: "chzzkstarrank2",
+    storageBucket: "chzzkstarrank2.firebasestorage.app",
+    messagingSenderId: "562699734602",
+    appId: "1:562699734602:web:d620c22e90e5a9ef88a0b3",
+    measurementId: "G-R17QH907Y6"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -91,8 +91,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- [태그 정의 데이터] ---
     const tagDefinitions = [
-        { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
-        { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
+        { name: "SDC", color: "#ff4500", members: ["채선트", "코을", "에뚜랑제", "나브자크", "전설의마왕9658", "SmileGyun", "콩아내", "앙오예", "워모그JaX", "프로피"] },
+        { name: "스진동", color: "#60a5fa", members: ["하늘루틴", "엄크술사", "아모크 amock82", "은송아지", "라무쓰", "망시", "찬울 Chanwool", "고보미", "카루하"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
         { name: "치즈캠", color: "#faea48", members: [] },
         { name: "뉴스동", color: "#34d399", members: [] }
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let notices = [];
     let inquiries = [];
     let currentEditNoticeId = null;
-    
+
     let historyCurrentPage = 1;
     let adminHistoryCurrentPage = 1;
     let totalMatchesCount = backupMatches.length; // 초기값
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         container.appendChild(createBtn(currentPage + 1, '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>', false, currentPage === totalPages));
     }
-    
+
     // --- [실시간 리스너] ---
     onSnapshot(collection(db, "Players"), (snapshot) => {
         players = snapshot.docs.map(doc => ({ ...doc.data() }));
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         onSnapshot(query(collection(db, "Inquiries"), orderBy("date", "desc")), (snapshot) => {
             inquiries = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-            if(isAdminLoggedIn) renderAdminDashboard();
+            if (isAdminLoggedIn) renderAdminDashboard();
         });
     }
 
@@ -218,14 +218,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
-        
-        // 필수 태그들이 Firestore에 없는 경우 자동 생성 (치즈캠 포함)
-        const requiredTags = ["뉴스동", "치즈캠"];
-        requiredTags.forEach(tagName => {
-            if (!tags.some(t => t.name === tagName)) {
-                const def = tagDefinitions.find(d => d.name === tagName) || { name: tagName, color: "#94a3b8", members: [] };
-                const docId = tagName === "뉴스동" ? "newsdong" : "chzzkcam";
-                setDoc(doc(db, "Tags", docId), { name: def.name, color: def.color, members: [] });
+
+        // 코드의 tagDefinitions와 Firestore 데이터를 동기화 (색상 업데이트 포함)
+        tagDefinitions.forEach(def => {
+            const existing = tags.find(t => t.name === def.name);
+            const docId = def.name.toLowerCase().replace(/ /g, '');
+            
+            // 태그가 아예 없거나, 색상이 코드와 다른 경우 Firestore 업데이트
+            if (!existing || existing.color !== def.color) {
+                setDoc(doc(db, "Tags", docId), {
+                    name: def.name,
+                    color: def.color,
+                    members: existing ? existing.members : (def.members || [])
+                }, { merge: true });
             }
         });
 
@@ -244,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = document.getElementById('systemStatusRow');
             const txt = document.getElementById('systemStatusText');
             const select = document.getElementById('adminSystemStatus');
-            
+
             if (status === 'maintenance') {
                 row.className = 'record-row status-gray';
                 txt.textContent = '점검중';
@@ -269,7 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const topRatingScoreEl = document.getElementById('topRatingScore');
     const topRatingNameEl = document.getElementById('topRatingName');
     const historyCountEl = document.getElementById('historyCount');
-    
+
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
@@ -303,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         totalPlayersEl.textContent = players.length;
         totalMatchesEl.textContent = totalMatchesCount;
         historyCountEl.textContent = totalMatchesCount;
-        
+
         if (players.length > 0) {
             // 레이팅 1등 (이미 정렬되어 있음)
             const ratingWinner = players[0];
@@ -403,8 +408,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         playerMatches.forEach(m => {
                             const isWin = m.winner.name === p.name;
                             matchesHtml += `<li style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
-                                <span>${m.title} <span style="color: var(--text-main);">vs ${isWin?m.loser.name:m.winner.name}</span></span>
-                                <span><span class="${isWin?'win':'loss'}">${isWin?'승리':'패배'}</span> <span style="font-size: 0.8rem;">${isWin?m.winner.delta:m.loser.delta}</span></span>
+                                <span>${m.title} <span style="color: var(--text-main);">vs ${isWin ? m.loser.name : m.winner.name}</span></span>
+                                <span><span class="${isWin ? 'win' : 'loss'}">${isWin ? '승리' : '패배'}</span> <span style="font-size: 0.8rem;">${isWin ? m.winner.delta : m.loser.delta}</span></span>
                             </li>`;
                         });
                         matchesHtml += '</ul></div>';
@@ -453,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="admin-item-info"><strong>[${n.category}] ${n.title}</strong><div style="font-size:0.8rem; opacity:0.6;">${new Date(n.date).toLocaleString()}</div></div>
                 <div class="admin-actions"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
             </div>`).join('') || '작성된 공지 없음';
-        
+
         if (allList) allList.innerHTML = notices.map(createNoticeHtml).join('');
 
         // Attach click listeners for main and all list
@@ -508,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 1. 최신 유저 데이터 실시간 조회 (데이터 정합성 보장)
                 let winnerRef = doc(db, "Players", winnerId);
                 let winnerDoc = await transaction.get(winnerRef);
-                
+
                 // ID로 찾지 못한 경우 이름으로 탐색 시도
                 if (!winnerDoc.exists() && winnerNameFallback) {
                     const p = players.find(p => p.name === winnerNameFallback);
@@ -578,7 +583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let fh = matchHistory;
         if (searchTerm) fh = matchHistory.filter(m => m.winner.name.toLowerCase().includes(searchTerm) || m.loser.name.toLowerCase().includes(searchTerm) || m.title.toLowerCase().includes(searchTerm));
         if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; document.getElementById('historyPagination').innerHTML = ''; return; }
-        
+
         const totalItems = fh.length;
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
         if (historyCurrentPage > totalPages) historyCurrentPage = totalPages || 1;
@@ -610,7 +615,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     navBtns.forEach(btn => btn.addEventListener('click', () => {
         navBtns.forEach(b => b.classList.remove('active')); tabContents.forEach(t => t.classList.remove('active'));
         btn.classList.add('active'); document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-        if(btn.dataset.tab === 'admin') renderAdminDashboard();
+        if (btn.dataset.tab === 'admin') renderAdminDashboard();
     }));
 
     document.getElementById('reportBtn').onclick = () => document.getElementById('reportModal').classList.add('active');
@@ -621,7 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const author = document.getElementById('inquiryAuthor').value.trim() || '익명';
         const msg = document.getElementById('inquiryMessage').value.trim();
         if (!msg) return alert('문의 내용을 입력해 주세요.');
-        
+
         await addDoc(collection(db, "Inquiries"), { author, message: msg, date: Date.now() });
         document.getElementById('inquiryAuthor').value = '';
         document.getElementById('inquiryMessage').value = '';
@@ -642,10 +647,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('reportUserBtn').onclick = () => document.getElementById('reportUserModal').classList.add('active');
     document.getElementById('submitUserBtn').onclick = async () => {
         const n = document.getElementById('newUserName').value.trim(), r = document.getElementById('newUserRace').value, rt = parseInt(document.getElementById('newUserRating').value) || 1200, rs = document.getElementById('newUserRecord').value.trim();
-        if(!n || !r) { alert('이름 종족 필수'); return; }
+        if (!n || !r) { alert('이름 종족 필수'); return; }
         let wins = 0, losses = 0;
         const wm = rs.match(/(\d+)승/), lm = rs.match(/(\d+)패/);
-        if(wm) wins = parseInt(wm[1]); if(lm) losses = parseInt(lm[1]);
+        if (wm) wins = parseInt(wm[1]); if (lm) losses = parseInt(lm[1]);
         const rid = Date.now().toString();
         await setDoc(doc(db, "UserReports", rid), { id: rid, name: n, race: r, rating: rt, win: wins, loss: losses, recordStr: rs, status: 'pending' });
         document.getElementById('newUserName').value = ''; document.getElementById('reportUserModal').classList.remove('active'); alert('제보 완료');
@@ -678,7 +683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const title = document.getElementById('noticeTitle').value.trim();
         const content = document.getElementById('noticeContent').value.trim();
         if (!title || !content) return alert('제목과 내용을 입력해 주세요.');
-        
+
         await addDoc(collection(db, "Notices"), { category: cat, title, content, date: Date.now() });
         document.getElementById('noticeWriteModal').classList.remove('active');
         alert('공지가 등록되었습니다.');
@@ -689,7 +694,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cat = document.getElementById('noticeCategory').value;
         const title = document.getElementById('noticeTitle').value.trim();
         const content = document.getElementById('noticeContent').value.trim();
-        
+
         await updateDoc(doc(db, "Notices", currentEditNoticeId), { category: cat, title, content });
         document.getElementById('noticeWriteModal').classList.remove('active');
         alert('공지가 수정되었습니다.');
@@ -741,7 +746,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     function renderAdminDashboard() {
-        if(!isAdminLoggedIn) return;
+        if (!isAdminLoggedIn) return;
         document.getElementById('pendingMatchesContainer').innerHTML = pendingMatches.map(m => `
             <div class="admin-item">
                 <div class="admin-item-info"><div class="admin-item-title">${m.title}</div><div>승: ${m.winnerName} / 패: ${m.loserName}</div><div style="font-size:0.8rem; opacity:0.6;">${m.date}</div></div>
@@ -757,7 +762,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const playerTags = getPlayerTags(p.name);
             const tag1 = playerTags[0]?.name || '';
             const tag2 = playerTags[1]?.name || '';
-            
+
             const tagSelectHtml = (idx, selectedVal) => `<select class="admin-edit-input p-tag-${idx}" data-id="${p.id}" style="width:80px;">
                 <option value="">태그 없음</option>
                 ${tags.map(t => `<option value="${t.name}" ${selectedVal === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
@@ -766,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `
             <div class="admin-item" style="flex-direction:column; align-items:start;"><div class="admin-edit-row">
                 <input type="text" class="admin-edit-input p-name" data-id="${p.id}" value="${p.name}" style="width:100px;">
-                <select class="admin-edit-input p-race" data-id="${p.id}"><option value="Zerg" ${p.race==='Zerg'?'selected':''}>Z</option><option value="Protoss" ${p.race==='Protoss'?'selected':''}>P</option><option value="Terran" ${p.race==='Terran'?'selected':''}>T</option><option value="Random" ${p.race==='Random'?'selected':''}>R</option></select>
+                <select class="admin-edit-input p-race" data-id="${p.id}"><option value="Zerg" ${p.race === 'Zerg' ? 'selected' : ''}>Z</option><option value="Protoss" ${p.race === 'Protoss' ? 'selected' : ''}>P</option><option value="Terran" ${p.race === 'Terran' ? 'selected' : ''}>T</option><option value="Random" ${p.race === 'Random' ? 'selected' : ''}>R</option></select>
                 <input type="number" class="admin-edit-input p-rating" data-id="${p.id}" value="${Math.round(p.rating)}" style="width:80px;">
                 <input type="number" class="admin-edit-input p-win" data-id="${p.id}" value="${p.win}" style="width:60px;">
                 <input type="number" class="admin-edit-input p-loss" data-id="${p.id}" value="${p.loss}" style="width:60px;">
@@ -779,7 +784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalHistoryItems = matchHistory.length;
         const totalHistoryPages = Math.ceil(totalHistoryItems / ITEMS_PER_PAGE);
         if (adminHistoryCurrentPage > totalHistoryPages) adminHistoryCurrentPage = totalHistoryPages || 1;
-        
+
         const pagedAdminHistory = matchHistory.slice((adminHistoryCurrentPage - 1) * ITEMS_PER_PAGE, adminHistoryCurrentPage * ITEMS_PER_PAGE);
 
         document.getElementById('adminHistoryContainer').innerHTML = pagedAdminHistory.map(m => `
@@ -811,7 +816,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('tab-admin').onclick = async (e) => {
         if (!isAdminLoggedIn) return;
-        
+
         // 1. 관리자 그리드 메뉴 전환 처리 (메뉴 버튼 클릭)
         const card = e.target.closest('.admin-grid-card');
         if (card && card.dataset.target) {
@@ -830,20 +835,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (btn.classList.contains('admin-match-approve')) {
             const m = pendingMatches.find(x => x.docId === id);
-            if(m) { 
-                await applyMatchResult(m.title, m.winnerId, m.loserId, m.winnerName, m.loserName); 
-                await deleteDoc(doc(db, "MatchReports", id)); 
-                alert('승인 완료 및 데이터가 즉시 반영되었습니다.'); 
+            if (m) {
+                await applyMatchResult(m.title, m.winnerId, m.loserId, m.winnerName, m.loserName);
+                await deleteDoc(doc(db, "MatchReports", id));
+                alert('승인 완료 및 데이터가 즉시 반영되었습니다.');
             }
         }
         if (btn.classList.contains('admin-match-reject')) await deleteDoc(doc(db, "MatchReports", id));
         if (btn.classList.contains('admin-user-approve')) {
             const u = pendingUsers.find(x => x.docId === id);
-            if(u) {
+            if (u) {
                 const nid = Date.now().toString();
                 // 새 유저가 들어갈 순위 계산
                 const newPlayerRank = players.filter(p => p.rating > u.rating).length + 1;
-                
+
                 // 새 유저보다 레이팅이 낮거나 같은 기존 유저들의 prevRank를 +1 (순위 밀림 보정)
                 const adjustBatch = writeBatch(db);
                 players.forEach(p => {
@@ -851,7 +856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         adjustBatch.update(doc(db, "Players", p.id), { prevRank: p.prevRank + 1 });
                     }
                 });
-                
+
                 await setDoc(doc(db, "Players", nid), { id: nid, name: u.name, race: u.race, rating: u.rating, win: u.win, loss: u.loss, prevRank: newPlayerRank, approvedAt: Date.now(), baseRating: u.rating });
                 await adjustBatch.commit();
                 await deleteDoc(doc(db, "UserReports", id));
@@ -886,15 +891,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const tData = tDoc.data();
                 let members = tData.members || [];
                 const originalLength = members.length;
-                
+
                 // 기존 이름이나 새 이름으로 된 태그에서 제거
                 members = members.filter(m => m !== (oldName || newName) && m !== newName);
-                
+
                 // 선택된 태그들에 이름 추가
                 if (selectedTags.includes(tData.name)) {
                     members.push(newName);
                 }
-                
+
                 // 변경사항이 있으면 배치에 추가
                 if (JSON.stringify(members) !== JSON.stringify(tData.members || [])) {
                     tagBatch.update(tDoc.ref, { members: members });
@@ -938,7 +943,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btn.classList.contains('admin-sync-player')) {
             const p = players.find(x => x.id === id);
             if (!p || !confirm(`'${p.name}' 선수의 모든 매치 기록을 찾아 전적과 레이팅을 재계산하시겠습니까?`)) return;
-            
+
             btn.disabled = true;
             try {
                 // 이전 이름 목록 (매핑이 필요한 경우 추가)
@@ -952,7 +957,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     or(where("winner.name", "in", targetNames), where("loser.name", "in", targetNames))
                 );
                 const snap = await getDocs(q);
-                
+
                 let newWin = 0;
                 let newLoss = 0;
                 let totalDelta = 0;
@@ -985,28 +990,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.disabled = false;
             }
         }
-        if (btn.classList.contains('admin-delete-player')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
+        if (btn.classList.contains('admin-delete-player')) { if (confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
         if (btn.classList.contains('admin-save-match')) {
             const row = btn.closest('.admin-edit-row');
             await updateDoc(doc(db, "Matches", id), { title: row.querySelector('.m-title').value });
             alert('저장 완료');
         }
         if (btn.classList.contains('admin-delete-match')) {
-            if(confirm('이 경기를 삭제하면 선수의 전적과 레이팅도 복구됩니다. 삭제하시겠습니까?')) {
+            if (confirm('이 경기를 삭제하면 선수의 전적과 레이팅도 복구됩니다. 삭제하시겠습니까?')) {
                 const m = matchHistory.find(x => x.id.toString() === id);
                 if (m) {
                     const winPlayer = players.find(p => p.name === m.winner.name);
                     const losePlayer = players.find(p => p.name === m.loser.name);
-                    
+
                     if (winPlayer && losePlayer) {
                         const delta = parseInt(m.winner.delta.replace('+', '').replace('-', '')) || 0;
-                        await updateDoc(doc(db, "Players", winPlayer.id), { 
-                            rating: increment(-delta), 
-                            win: increment(-1) 
+                        await updateDoc(doc(db, "Players", winPlayer.id), {
+                            rating: increment(-delta),
+                            win: increment(-1)
                         });
-                        await updateDoc(doc(db, "Players", losePlayer.id), { 
-                            rating: increment(delta), 
-                            loss: increment(-1) 
+                        await updateDoc(doc(db, "Players", losePlayer.id), {
+                            rating: increment(delta),
+                            loss: increment(-1)
                         });
                     }
                 }
@@ -1015,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         if (btn.classList.contains('admin-delete-inquiry')) {
-            if(confirm('이 문의 내역을 삭제하시겠습니까?')) {
+            if (confirm('이 문의 내역을 삭제하시겠습니까?')) {
                 await deleteDoc(doc(db, "Inquiries", id));
                 alert('삭제되었습니다.');
             }
