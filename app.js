@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import { 
     initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc, 
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch 
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or 
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -755,6 +755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <input type="number" class="admin-edit-input p-win" data-id="${p.id}" value="${p.win}" style="width:60px;">
                 <input type="number" class="admin-edit-input p-loss" data-id="${p.id}" value="${p.loss}" style="width:60px;">
                 ${tagSelectHtml}
+                <button class="admin-btn approve admin-sync-player" data-id="${p.id}" title="전적 복구"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
                 <button class="admin-btn approve admin-save-player" data-id="${p.id}">저장</button><button class="admin-btn delete admin-delete-player" data-id="${p.id}">삭제</button>
             </div></div>`;
         }).join('');
@@ -915,6 +916,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             alert('저장 완료 (매치 기록 동기화 포함)');
+        }
+        if (btn.classList.contains('admin-sync-player')) {
+            const p = players.find(x => x.id === id);
+            if (!p || !confirm(`'${p.name}' 선수의 모든 매치 기록을 찾아 전적과 레이팅을 재계산하시겠습니까?`)) return;
+            
+            btn.disabled = true;
+            try {
+                // 이전 이름 목록 (매핑이 필요한 경우 추가)
+                const targetNames = [p.name];
+                if (p.name === "제리123") targetNames.push("제리");
+                if (p.name === "아모크 amock82") targetNames.push("아모크 ammock82");
+
+                // 해당 플레이어가 참여한 모든 매치 조회
+                const q = query(
+                    collection(db, "Matches"),
+                    or(where("winner.name", "in", targetNames), where("loser.name", "in", targetNames))
+                );
+                const snap = await getDocs(q);
+                
+                let newWin = 0;
+                let newLoss = 0;
+                let totalDelta = 0;
+
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    const isWinner = targetNames.includes(m.winner.name);
+                    const isLoser = targetNames.includes(m.loser.name);
+
+                    if (isWinner) {
+                        newWin++;
+                        totalDelta += parseInt(m.winner.delta.toString().replace('+', '')) || 0;
+                    } else if (isLoser) {
+                        newLoss++;
+                        totalDelta += parseInt(m.loser.delta.toString().replace('+', '')) || 0; // -XX 형태이므로 그대로 더함
+                    }
+                });
+
+                const newRating = (p.baseRating || 1200) + totalDelta;
+                await updateDoc(doc(db, "Players", id), {
+                    win: newWin,
+                    loss: newLoss,
+                    rating: newRating
+                });
+                alert(`'${p.name}' 선수 데이터 복구 완료!\n(승: ${newWin}, 패: ${newLoss}, 레이팅: ${Math.round(newRating)})`);
+            } catch (e) {
+                console.error(e);
+                alert('복구 중 오류 발생');
+            } finally {
+                btn.disabled = false;
+            }
         }
         if (btn.classList.contains('admin-delete-player')) { if(confirm('삭제?')) await deleteDoc(doc(db, "Players", id)); }
         if (btn.classList.contains('admin-save-match')) {
