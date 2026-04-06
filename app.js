@@ -22,7 +22,7 @@ const db = initializeFirestore(app, {
 document.addEventListener('DOMContentLoaded', async () => {
     // --- [사용자 백업 데이터] ---
     const backupPlayers = [
-        { id: "1", name: "제리", race: "Zerg", rating: 2480, win: 8, loss: 0, prevRank: 1 },
+        { id: "1", name: "제리123", race: "Zerg", rating: 2480, win: 8, loss: 0, prevRank: 1 },
         { id: "2", name: "아미1", race: "Protoss", rating: 2350, win: 4, loss: 3, prevRank: 2 },
         { id: "3", name: "채선트", race: "Protoss", rating: 2303, win: 2, loss: 2, prevRank: 3 },
         { id: "4", name: "코을", race: "Terran", rating: 2267, win: 1, loss: 2, prevRank: 4 },
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: "17", name: "Crunch", race: "Terran", rating: 1962, win: 0, loss: 0, prevRank: 17 },
         { id: "13", name: "엄크술사", race: "Terran", rating: 1944, win: 0, loss: 0, prevRank: 13 },
         { id: "14", name: "SmileGyun", race: "Protoss", rating: 1869, win: 0, loss: 1, prevRank: 14 },
-        { id: "15", name: "아모크 ammock82", race: "Zerg", rating: 1838, win: 0, loss: 0, prevRank: 15 },
+        { id: "15", name: "아모크 amock82", race: "Zerg", rating: 1838, win: 0, loss: 0, prevRank: 15 },
         { id: "16", name: "콩아내", race: "Protoss", rating: 1833, win: 0, loss: 1, prevRank: 16 },
         { id: "18", name: "은송아지", race: "Zerg", rating: 1770, win: 0, loss: 0, prevRank: 18 },
         { id: "19", name: "앙오예", race: "Terran", rating: 1716, win: 0, loss: 0, prevRank: 19 },
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- [태그 정의 데이터] ---
     const tagDefinitions = [
         { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
-        { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
+        { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
         { name: "치즈캠", color: "#faea48", members: [] }
     ];
@@ -162,68 +162,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.appendChild(createBtn(currentPage + 1, '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>', false, currentPage === totalPages));
     }
     
-    // --- [마이그레이션 로직: 데이터 유실 방지를 위해 개수가 부족하면 무조건 실행] ---
-    async function migrateToCollections() {
-        const playersCol = collection(db, "Players");
-        const matchesCol = collection(db, "Matches");
-
-        // 플레이어 데이터 복구: 컬렉션이 완전히 비어있는 경우에만 백업 데이터로 초기화합니다.
-        const playersSnap = await getDocs(playersCol);
-        if (playersSnap.empty) {
-            console.log("플레이어 데이터 복구 중...");
-            for (const p of backupPlayers) {
-                const playerRef = doc(db, "Players", p.id);
-                await setDoc(playerRef, { ...p, baseRating: p.rating, approvedAt: Date.now() });
-            }
-        }
-
-        // 매치 기록 복구
-        const matchesSnap = await getDocs(matchesCol);
-        if (matchesSnap.empty) {
-            console.log("매치 기록 복구 중...");
-            for (const m of backupMatches) await setDoc(doc(db, "Matches", m.id.toString()), m);
-        }
-
-        // 태그 데이터 동기화: 태그 정의의 변경사항을 Firebase에 실시간 반영 (삭제된 태그 제거 포함)
-        const existingTagsSnap = await getDocs(collection(db, "Tags"));
-        const existingTagNames = existingTagsSnap.docs.map(d => d.id);
-        const newTagNames = tagDefinitions.map(t => t.name);
-
-        // 삭제된 태그 제거 (Firebase에는 있지만 정의에는 없는 태그)
-        for (const oldName of existingTagNames) {
-            if (!newTagNames.includes(oldName)) {
-                console.log(`태그 제거: ${oldName}`);
-                await deleteDoc(doc(db, "Tags", oldName));
-            }
-        }
-
-        // 새 태그 정의를 반영하되, 기존 멤버 데이터는 덮어쓰지 않도록 수정
-        for (const tag of tagDefinitions) {
-            const tagRef = doc(db, "Tags", tag.name);
-            const tagSnap = await getDoc(tagRef);
-            if (!tagSnap.exists()) {
-                await setDoc(tagRef, { name: tag.name, color: tag.color, members: tag.members });
-            } else {
-                await updateDoc(tagRef, { color: tag.color }); // 색상 정보만 업데이트
-            }
-        }
-
-        // 시스템 상태 초기화 (없을 경우에만)
-        const sysSnap = await getDoc(doc(db, "Settings", "system"));
-        if (!sysSnap.exists()) {
-            await setDoc(doc(db, "Settings", "system"), { status: "online" });
-        }
-
-        // 통계 데이터 초기화
-        const statsSnap = await getDoc(doc(db, "Settings", "stats"));
-        if (!statsSnap.exists()) {
-            const matchesSnapCount = await getDocs(collection(db, "Matches"));
-            await setDoc(doc(db, "Settings", "stats"), { totalMatches: matchesSnapCount.size });
-        }
-    }
-
-    // await migrateToCollections();
-
     // --- [실시간 리스너] ---
     onSnapshot(collection(db, "Players"), (snapshot) => {
         players = snapshot.docs.map(doc => ({ ...doc.data() }));
@@ -241,16 +179,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(doc(db, "Settings", "stats"), async (snap) => {
+    onSnapshot(doc(db, "Settings", "stats"), (snap) => {
         if (snap.exists()) {
             totalMatchesCount = snap.data().totalMatches || 0;
             renderStats();
         } else {
-            // 통계 문서가 없으면 최초 1회 전체 경기 수를 카운트하여 생성 (이후에는 작동 안함)
-            const matchesSnapCount = await getDocs(collection(db, "Matches"));
-            const size = matchesSnapCount.size;
-            await setDoc(doc(db, "Settings", "stats"), { totalMatches: size });
-            totalMatchesCount = size;
+            // 통계 문서가 없으면 백업 데이터의 개수를 기본으로 사용 (읽기 할당량 절약)
+            totalMatchesCount = backupMatches.length;
             renderStats();
         }
     });
@@ -791,88 +726,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    document.getElementById('syncAllStatsBtn').onclick = async () => {
-        if (!confirm('DB의 모든 매치 기록을 읽어 전체 플레이어의 레이팅과 전적을 재계산하시겠습니까?\n이 작업은 모든 매치 건수만큼 읽기 횟수가 발생하지만, 한 번 완료되면 메인 화면 전적이 최신화됩니다.')) return;
-        
-        const btn = document.getElementById('syncAllStatsBtn');
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = '동기화 중...';
 
-        try {
-            // 1. 모든 매치 기록 가져오기 (오름차순으로 정렬하여 과거부터 현재까지 순차 적용)
-            const matchesSnap = await getDocs(query(collection(db, "Matches"), orderBy("id", "asc")));
-            const allMatches = matchesSnap.docs.map(d => d.data());
-            
-            // 2. 플레이어 기초 정보 맵 생성
-            // 백업 유저 정보로 초기화 (baseRating을 초기 레이팅으로 사용)
-            const playerStats = {};
-            backupPlayers.forEach(p => {
-                playerStats[p.name] = { 
-                    id: p.id, 
-                    rating: p.rating, // 백업 데이터의 초기 레이팅
-                    win: 0, 
-                    loss: 0 
-                };
-            });
-
-            // Firestore에 추가된 신규 유저들도 포함
-            players.forEach(p => {
-                if (!playerStats[p.name]) {
-                    playerStats[p.name] = { 
-                        id: p.id, 
-                        rating: p.baseRating || 1200, 
-                        win: 0, 
-                        loss: 0 
-                    };
-                }
-            });
-
-            // 3. 모든 매치 순차 적용 (Elo 레이팅 재계산)
-            allMatches.forEach(m => {
-                const winner = playerStats[m.winner.name];
-                const loser = playerStats[m.loser.name];
-                
-                if (winner && loser) {
-                    const p1 = 1 / (1 + Math.pow(10, (loser.rating - winner.rating) / 400));
-                    // 매치 기록에 저장된 delta 값을 우선 사용 (없을 경우 K=32 적용)
-                    const deltaStr = m.winner.delta.toString().replace('+', '').replace('-', '');
-                    const delta = parseInt(deltaStr) || Math.round(32 * (1 - p1));
-                    
-                    winner.rating += delta;
-                    winner.win += 1;
-                    loser.rating -= delta;
-                    loser.loss += 1;
-                }
-            });
-
-            // 4. Firestore에 일괄 업데이트 (Batch 사용으로 효율성 증대)
-            const batch = writeBatch(db);
-            Object.keys(playerStats).forEach(name => {
-                const ps = playerStats[name];
-                const pRef = doc(db, "Players", ps.id);
-                // 실시간 리스너를 통해 UI에 반영되도록 업데이트
-                batch.update(pRef, {
-                    rating: ps.rating,
-                    win: ps.win,
-                    loss: ps.loss
-                });
-            });
-            
-            // 전체 매치 카운트도 최신화
-            const statsRef = doc(db, "Settings", "stats");
-            batch.update(statsRef, { totalMatches: allMatches.length });
-
-            await batch.commit();
-            alert(`동기화 완료! 총 ${allMatches.length}개의 매치를 반영하여 전적을 최신 상태로 복구했습니다.`);
-        } catch (e) {
-            console.error("동기화 실패:", e);
-            alert('동기화 처리 과정에서 오류가 발생했습니다.');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
-    };
 
     function renderAdminDashboard() {
         if(!isAdminLoggedIn) return;
