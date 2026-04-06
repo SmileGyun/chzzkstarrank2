@@ -94,7 +94,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         { name: "SDC", color: "#ff4500", members: ["채선트","코을","에뚜랑제","나브자크","전설의마왕9658","SmileGyun","콩아내","앙오예","워모그JaX","프로피"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","고보미","카루하"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
-        { name: "치즈캠", color: "#faea48", members: [] }
+        { name: "치즈캠", color: "#faea48", members: [] },
+        { name: "뉴스동", color: "#34d399", members: [] }
     ];
 
     let players = backupPlayers.map(p => ({ ...p }));
@@ -217,6 +218,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
+        // '뉴스동'이 없으면 자동 생성 시도
+        if (!tags.some(t => t.name === "뉴스동")) {
+            setDoc(doc(db, "Tags", "newsdong"), { name: "뉴스동", color: "#34d399", members: [] });
+        }
         renderRankingTable();
         if (isAdminLoggedIn) renderAdminDashboard();
     });
@@ -742,11 +747,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>`).join('') || '대기열 없음';
 
         document.getElementById('adminRankingContainer').innerHTML = players.map(p => {
-            const playerTag = getPlayerTags(p.name)[0]?.name || '';
-            const tagSelectHtml = `<select class="admin-edit-input p-tag" data-id="${p.id}" style="width:80px;">
+            const playerTags = getPlayerTags(p.name);
+            const tag1 = playerTags[0]?.name || '';
+            const tag2 = playerTags[1]?.name || '';
+            
+            const tagSelectHtml = (idx, selectedVal) => `<select class="admin-edit-input p-tag-${idx}" data-id="${p.id}" style="width:80px;">
                 <option value="">태그 없음</option>
-                ${tags.map(t => `<option value="${t.name}" ${playerTag === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
+                ${tags.map(t => `<option value="${t.name}" ${selectedVal === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
             </select>`;
+
             return `
             <div class="admin-item" style="flex-direction:column; align-items:start;"><div class="admin-edit-row">
                 <input type="text" class="admin-edit-input p-name" data-id="${p.id}" value="${p.name}" style="width:100px;">
@@ -754,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <input type="number" class="admin-edit-input p-rating" data-id="${p.id}" value="${Math.round(p.rating)}" style="width:80px;">
                 <input type="number" class="admin-edit-input p-win" data-id="${p.id}" value="${p.win}" style="width:60px;">
                 <input type="number" class="admin-edit-input p-loss" data-id="${p.id}" value="${p.loss}" style="width:60px;">
-                ${tagSelectHtml}
+                <div style="display:flex; gap:2px;">${tagSelectHtml(1, tag1)}${tagSelectHtml(2, tag2)}</div>
                 <button class="admin-btn approve admin-sync-player" data-id="${p.id}" title="전적 복구"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
                 <button class="admin-btn approve admin-save-player" data-id="${p.id}">저장</button><button class="admin-btn delete admin-delete-player" data-id="${p.id}">삭제</button>
             </div></div>`;
@@ -850,7 +859,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newRating = parseInt(row.querySelector('.p-rating').value);
             const newWin = parseInt(row.querySelector('.p-win').value);
             const newLoss = parseInt(row.querySelector('.p-loss').value);
-            const newTag = row.querySelector('.p-tag').value;
+            const newTag1 = row.querySelector('.p-tag-1').value;
+            const newTag2 = row.querySelector('.p-tag-2').value;
+            const selectedTags = [newTag1, newTag2].filter(t => t !== "");
 
             const playerRef = doc(db, "Players", id);
             const playerSnap = await getDoc(playerRef);
@@ -872,13 +883,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 기존 이름이나 새 이름으로 된 태그에서 제거
                 members = members.filter(m => m !== (oldName || newName) && m !== newName);
                 
-                // 새로 선택된 태그에 이름 추가
-                if (tData.name === newTag) {
+                // 선택된 태그들에 이름 추가
+                if (selectedTags.includes(tData.name)) {
                     members.push(newName);
                 }
                 
                 // 변경사항이 있으면 배치에 추가
-                if (members.length !== originalLength || (tData.name === newTag && !tData.members?.includes(newName))) {
+                if (JSON.stringify(members) !== JSON.stringify(tData.members || [])) {
                     tagBatch.update(tDoc.ref, { members: members });
                     hasTagUpdates = true;
                 }
