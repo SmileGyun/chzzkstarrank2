@@ -824,11 +824,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 태그 데이터 추출용 코드 생성
         const tagExportArea = document.getElementById('tagExportArea');
+        const playerExportArea = document.getElementById('playerExportArea');
+        
         if (tagExportArea) {
             const codeString = "const tagDefinitions = [\n" + 
                 tags.map(t => `    { name: "${t.name}", color: "${t.color}", members: ${JSON.stringify(t.members || [])} }`).join(",\n") + 
                 "\n];";
             tagExportArea.value = codeString;
+        }
+
+        if (playerExportArea) {
+            // 레이팅 기준으로 소팅하여 추출
+            const sorted = [...players].sort((a, b) => b.rating - a.rating);
+            const codeString = "const backupPlayers = [\n" + 
+                sorted.map((p, idx) => `    { id: "${p.id}", name: "${p.name}", race: "${p.race}", rating: ${Math.round(p.rating)}, win: ${p.win}, loss: ${p.loss}, prevRank: ${idx + 1} }`).join(",\n") + 
+                "\n];";
+            playerExportArea.value = codeString;
         }
     }
 

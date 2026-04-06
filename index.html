@@ -219,9 +219,16 @@
                 </div>
                 <div id="admin-tag-export" class="admin-content-section" style="display:none;">
                     <div class="admin-section">
-                        <h2>태그 데이터 추출 (코드용)</h2>
-                        <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">아래 코드를 복사해서 AI 가이드에게 전달해 주세요.</div>
-                        <textarea id="tagExportArea" readonly style="width: 100%; height: 300px; background: rgba(0,0,0,0.3); color: #00d95a; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                        <h2>데이터 추출 (백업 및 코드용)</h2>
+                        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+                            <div style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #fbbf24; font-weight: 600;">1. 최신 태그 데이터 (tagDefinitions)</div>
+                            <textarea id="tagExportArea" readonly style="width: 100%; height: 200px; background: rgba(0,0,0,0.3); color: #00d95a; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.8rem; margin-bottom: 1rem;"></textarea>
+                        </div>
+                        <div>
+                            <div style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #60a5fa; font-weight: 600;">2. 최신 유저 백업 데이터 (backupPlayers)</div>
+                            <textarea id="playerExportArea" readonly style="width: 100%; height: 300px; background: rgba(0,0,0,0.3); color: #60a5fa; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.8rem;"></textarea>
+                        </div>
+                        <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">위의 코드들을 각각 복사해서 저에게 채팅창으로 전달해 주세요.</div>
                     </div>
                 </div>
             </div>
