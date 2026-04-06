@@ -165,6 +165,7 @@
                     <div class="admin-grid-card" data-target="admin-notices">공지 작성</div>
                     <div class="admin-grid-card" data-target="admin-site-system">사이트 시스템</div>
                     <div class="admin-grid-card" data-target="admin-inquiries">문의</div>
+                    <div class="admin-grid-card" data-target="admin-tag-export" style="border-color: #fbbf24; color: #fbbf24;">태그 추출</div>
                 </div>
                 
                 <div id="admin-pending-matches" class="admin-content-section">
@@ -215,6 +216,13 @@
                 </div>
                 <div id="admin-inquiries" class="admin-content-section" style="display:none;">
                     <div id="adminInquiriesContainer" class="admin-list"></div>
+                </div>
+                <div id="admin-tag-export" class="admin-content-section" style="display:none;">
+                    <div class="admin-section">
+                        <h2>태그 데이터 추출 (코드용)</h2>
+                        <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">아래 코드를 복사해서 AI 가이드에게 전달해 주세요.</div>
+                        <textarea id="tagExportArea" readonly style="width: 100%; height: 300px; background: rgba(0,0,0,0.3); color: #00d95a; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.85rem;"></textarea>
+                    </div>
                 </div>
             </div>
         </section>

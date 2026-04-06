@@ -821,6 +821,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `).join('') || '접수된 문의가 없습니다.';
         }
+
+        // 태그 데이터 추출용 코드 생성
+        const tagExportArea = document.getElementById('tagExportArea');
+        if (tagExportArea) {
+            const codeString = "const tagDefinitions = [\n" + 
+                tags.map(t => `    { name: "${t.name}", color: "${t.color}", members: ${JSON.stringify(t.members || [])} }`).join(",\n") + 
+                "\n];";
+            tagExportArea.value = codeString;
+        }
     }
 
     document.getElementById('tab-admin').onclick = async (e) => {
