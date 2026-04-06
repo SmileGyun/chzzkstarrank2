@@ -218,10 +218,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     onSnapshot(collection(db, "Tags"), (snapshot) => {
         tags = snapshot.docs.map(doc => doc.data());
-        // '뉴스동'이 없으면 자동 생성 시도
-        if (!tags.some(t => t.name === "뉴스동")) {
-            setDoc(doc(db, "Tags", "newsdong"), { name: "뉴스동", color: "#34d399", members: [] });
-        }
+        
+        // 필수 태그들이 Firestore에 없는 경우 자동 생성 (치즈캠 포함)
+        const requiredTags = ["뉴스동", "치즈캠"];
+        requiredTags.forEach(tagName => {
+            if (!tags.some(t => t.name === tagName)) {
+                const def = tagDefinitions.find(d => d.name === tagName) || { name: tagName, color: "#94a3b8", members: [] };
+                const docId = tagName === "뉴스동" ? "newsdong" : "chzzkcam";
+                setDoc(doc(db, "Tags", docId), { name: def.name, color: def.color, members: [] });
+            }
+        });
+
         renderRankingTable();
         if (isAdminLoggedIn) renderAdminDashboard();
     });
