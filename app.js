@@ -428,17 +428,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('detailModalBody').innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">데이터를 불러오고 있습니다...</div>';
                     document.getElementById('userDetailsModal').classList.add('active');
 
-                    // 해당 선수의 전체 매치 중 최신 5개 직접 쿼리 (할당량 최적화)
+                    // 인덱스 오류 방지를 위해 승리/패배 매치를 각각 쿼리 후 병합
                     let matchesHtml = '<div style="grid-column: 1 / -1; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);"><h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">최근 매치 기록</h4>';
                     try {
-                        const q = query(
-                            collection(db, "Matches"),
-                            or(where("winner.name", "==", p.name), where("loser.name", "==", p.name)),
-                            orderBy("id", "desc"),
-                            limit(5)
-                        );
-                        const mSnap = await getDocs(q);
-                        const playerMatches = mSnap.docs.map(doc => doc.data());
+                        const qWin = query(collection(db, "Matches"), where("winner.name", "==", p.name), orderBy("id", "desc"), limit(5));
+                        const qLoss = query(collection(db, "Matches"), where("loser.name", "==", p.name), orderBy("id", "desc"), limit(5));
+                        
+                        const [winSnap, lossSnap] = await Promise.all([getDocs(qWin), getDocs(qLoss)]);
+                        
+                        const playerMatches = [
+                            ...winSnap.docs.map(doc => doc.data()),
+                            ...lossSnap.docs.map(doc => doc.data())
+                        ].sort((a, b) => b.id - a.id).slice(0, 5);
 
                         if (playerMatches.length > 0) {
                             matchesHtml += '<ul style="list-style: none; padding: 0; font-size: 0.85rem;">';
