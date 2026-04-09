@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isSearchingHistory = false;
     let historySearchResults = [];
 
-    // --- 서버 측 검색 기능 구현 ---
+    // --- 서버 측 검색 기능 구현 (최적화 버전) ---
     async function conductHistorySearch() {
         const term = searchInput.value.trim().toLowerCase();
         if (!term) {
@@ -670,9 +670,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">전체 기록에서 검색 중...</div>';
         try {
-            // 인덱스 오류 방지를 위해 각각 검색 후 병합
-            const qWin = query(collection(db, "Matches"), where("winner.name", "==", term));
-            const qLoss = query(collection(db, "Matches"), where("loser.name", "==", term));
+            // 할당량 최적화를 위해 각 조건당 최대 40개까지만 조회 (충분한 최신 데이터 확보)
+            // 인덱스 미설정 상태에서 오류 방지를 위해 orderBy 없이 조회 후 클라이언트에서 정렬
+            const qWin = query(collection(db, "Matches"), where("winner.name", "==", term), limit(40));
+            const qLoss = query(collection(db, "Matches"), where("loser.name", "==", term), limit(40));
             
             const [winSnap, lossSnap] = await Promise.all([getDocs(qWin), getDocs(qLoss)]);
             
@@ -683,12 +684,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             isSearchingHistory = true;
             historyCurrentPage = 1;
-            
-            // 검색 결과 렌더링
             renderHistory();
         } catch (err) {
             console.error("검색 중 오류:", err);
-            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--status-red);">검색 중 오류가 발생했습니다. (정확한 닉네임을 입력해 주세요)</div>';
+            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--status-red);">검색 중 오류가 발생했습니다.</div>';
         }
     }
 
