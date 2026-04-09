@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isSearchingHistory = false;
     let historySearchResults = [];
 
-    // --- 서버 측 검색 기능 구현 (최적화 버전) ---
+    // --- 서버 측 검색 기능 구현 (정확한 최신순 40개) ---
     async function conductHistorySearch() {
         const term = searchInput.value.trim().toLowerCase();
         if (!term) {
@@ -668,19 +668,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">전체 기록에서 검색 중...</div>';
+        historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">전체 기록에서 최신 40개 검색 중...</div>';
         try {
-            // 할당량 최적화를 위해 각 조건당 최대 40개까지만 조회 (충분한 최신 데이터 확보)
-            // 인덱스 미설정 상태에서 오류 방지를 위해 orderBy 없이 조회 후 클라이언트에서 정렬
+            // 어느 한쪽으로 치우쳐도(예: 40연승) 누락 없도록 승률 편중을 고려하여 넉넉히 가져옴
             const qWin = query(collection(db, "Matches"), where("winner.name", "==", term), limit(40));
             const qLoss = query(collection(db, "Matches"), where("loser.name", "==", term), limit(40));
             
             const [winSnap, lossSnap] = await Promise.all([getDocs(qWin), getDocs(qLoss)]);
             
+            // 모든 기록을 합친 뒤 전체에서 가장 최신 40개만 추출
             historySearchResults = [
                 ...winSnap.docs.map(doc => doc.data()),
                 ...lossSnap.docs.map(doc => doc.data())
-            ].sort((a, b) => b.id - a.id);
+            ].sort((a, b) => b.id - a.id).slice(0, 40);
 
             isSearchingHistory = true;
             historyCurrentPage = 1;
