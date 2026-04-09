@@ -831,9 +831,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const content = document.getElementById('noticeContent').value.trim();
         if (!title || !content) return alert('제목과 내용을 입력해 주세요.');
 
-        await addDoc(collection(db, "Notices"), { category: cat, title, content, date: Date.now() });
-        document.getElementById('noticeWriteModal').classList.remove('active');
-        alert('공지가 등록되었습니다.');
+        try {
+            await addDoc(collection(db, "Notices"), { category: cat, title, content, date: Date.now() });
+            document.getElementById('noticeWriteModal').classList.remove('active');
+            alert('공지가 등록되었습니다.');
+            // 저장 후 즉시 다시 불러오기
+            if (typeof loadNoticesOnce === 'function') await loadNoticesOnce();
+        } catch (e) {
+            console.error(e);
+            alert('공지 등록 중 오류가 발생했습니다.');
+        }
     };
 
     document.getElementById('updateNoticeBtn').onclick = async () => {
@@ -842,16 +849,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         const title = document.getElementById('noticeTitle').value.trim();
         const content = document.getElementById('noticeContent').value.trim();
 
-        await updateDoc(doc(db, "Notices", currentEditNoticeId), { category: cat, title, content });
-        document.getElementById('noticeWriteModal').classList.remove('active');
-        alert('공지가 수정되었습니다.');
+        try {
+            await updateDoc(doc(db, "Notices", currentEditNoticeId), { category: cat, title, content });
+            document.getElementById('noticeWriteModal').classList.remove('active');
+            alert('공지가 수정되었습니다.');
+            if (typeof loadNoticesOnce === 'function') await loadNoticesOnce();
+        } catch (e) {
+            console.error(e);
+            alert('수정 중 오류 발생');
+        }
     };
 
     document.getElementById('deleteNoticeBtn').onclick = async () => {
         if (!currentEditNoticeId || !confirm('공지를 삭제하시겠습니까?')) return;
-        await deleteDoc(doc(db, "Notices", currentEditNoticeId));
-        document.getElementById('noticeWriteModal').classList.remove('active');
-        alert('공지가 삭제되었습니다.');
+        try {
+            await deleteDoc(doc(db, "Notices", currentEditNoticeId));
+            document.getElementById('noticeWriteModal').classList.remove('active');
+            alert('공지가 삭제되었습니다.');
+            if (typeof loadNoticesOnce === 'function') await loadNoticesOnce();
+        } catch (e) {
+            console.error(e);
+            alert('삭제 중 오류 발생');
+        }
     };
 
     const viewAllNoticesBtn = document.getElementById('viewAllNoticesBtn');
