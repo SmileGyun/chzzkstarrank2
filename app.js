@@ -178,11 +178,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isAdminLoggedIn) renderAdminDashboard();
     });
 
-    onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(40)), (snapshot) => {
-        matchHistory = snapshot.docs.map(doc => doc.data());
-        // 실시간 리스너는 이미 정렬된 데이터를 주지만, 혹시 모를 로컬 정렬
-        matchHistory.sort((a, b) => b.id - a.id);
-        renderHistory();
+    // 최신 매치 20개만 실시간으로 감시 (첫 페이지 라이브 반응용)
+    onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(20)), (snapshot) => {
+        const latestMatches = snapshot.docs.map(doc => doc.data());
+        // matchHistory의 첫 페이지 부분만 업데이트하거나, 
+        // 전체 조회가 아닐 때(검색어가 없을 때)만 라이브 반영
+        if (!searchTerm && historyCurrentPage === 1) {
+            matchHistory = latestMatches;
+            renderHistory();
+        }
         renderStats();
         if (isAdminLoggedIn) renderAdminDashboard();
     });
@@ -415,32 +419,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         document.querySelectorAll('.toggle-details').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
                 const p = players.find(x => x.id === id);
                 if (p) {
-                    const playerMatches = matchHistory.filter(m => m.winner.name === p.name || m.loser.name === p.name).slice(0, 5);
-                    let matchesHtml = '<div style="grid-column: 1 / -1; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);"><h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">최근 매치 기록</h4>';
-                    if (playerMatches.length > 0) {
-                        matchesHtml += '<ul style="list-style: none; padding: 0; font-size: 0.85rem;">';
-                        playerMatches.forEach(m => {
-                            const isWin = m.winner.name === p.name;
-                            matchesHtml += `<li style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
-                                <span>${m.title} <span style="color: var(--text-main);">vs ${isWin ? m.loser.name : m.winner.name}</span></span>
-                                <span><span class="${isWin ? 'win' : 'loss'}">${isWin ? '승리' : '패배'}</span> <span style="font-size: 0.8rem;">${isWin ? m.winner.delta : m.loser.delta}</span></span>
-                            </li>`;
-                        });
-                        matchesHtml += '</ul></div>';
-                    } else matchesHtml += '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem 0;">기록 없음</div></div>';
-
+                    // 모달 표시 전 로딩 상태 표시
                     document.getElementById('detailModalTitle').textContent = `${p.name} 상세정보`;
+                    document.getElementById('detailModalBody').innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">데이터를 불러오고 있습니다...</div>';
+                    document.getElementById('userDetailsModal').classList.add('active');
+
+                    // 해당 선수의 전체 매치 중 최신 5개 직접 쿼리 (할당량 최적화)
+                    let matchesHtml = '<div style="grid-column: 1 / -1; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);"><h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">최근 매치 기록</h4>';
+                    try {
+                        const q = query(
+                            collection(db, "Matches"),
+                            or(where("winner.name", "==", p.name), where("loser.name", "==", p.name)),
+                            orderBy("id", "desc"),
+                            limit(5)
+                        );
+                        const mSnap = await getDocs(q);
+                        const playerMatches = mSnap.docs.map(doc => doc.data());
+
+                        if (playerMatches.length > 0) {
+                            matchesHtml += '<ul style="list-style: none; padding: 0; font-size: 0.85rem;">';
+                            playerMatches.forEach(m => {
+                                const isWin = m.winner.name === p.name;
+                                matchesHtml += `<li style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+                                    <span>${m.title} <span style="color: var(--text-main);">vs ${isWin ? m.loser.name : m.winner.name}</span></span>
+                                    <span><span class="${isWin ? 'win' : 'loss'}">${isWin ? '승리' : '패배'}</span> <span style="font-size: 0.8rem;">${isWin ? m.winner.delta : m.loser.delta}</span></span>
+                                </li>`;
+                            });
+                            matchesHtml += '</ul></div>';
+                        } else {
+                            matchesHtml += '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem 0;">기록 없음</div></div>';
+                        }
+                    } catch (err) {
+                        console.error("최근 매치 로드 실패:", err);
+                        matchesHtml += '<div style="color: var(--status-red); font-size: 0.85rem; text-align: center; padding: 1rem 0;">기록을 불러오지 못했습니다.</div></div>';
+                    }
+
                     document.getElementById('detailModalBody').innerHTML = `
                         <div class="detail-stat"><span class="detail-stat-label">종족</span><span class="detail-stat-val"><span class="race-badge ${p.race.toLowerCase()}">${p.race}</span></span></div>
                         <div class="detail-stat"><span class="detail-stat-label">티어</span><span class="detail-stat-val tier-${getTier(p.rating).toLowerCase()}">${getTier(p.rating)} Tier</span></div>
                         <div class="detail-stat"><span class="detail-stat-label">레이팅</span><span class="detail-stat-val">${Math.round(p.rating)}</span></div>
                         <div class="detail-stat"><span class="detail-stat-label">전적</span><span class="detail-stat-val">${p.win}승 ${p.loss}패</span></div>
                         ${matchesHtml}`;
-                    document.getElementById('userDetailsModal').classList.add('active');
                 }
             });
         });
@@ -597,18 +620,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function renderHistory() {
-        let fh = matchHistory;
-        if (searchTerm) fh = matchHistory.filter(m => m.winner.name.toLowerCase().includes(searchTerm) || m.loser.name.toLowerCase().includes(searchTerm) || m.title.toLowerCase().includes(searchTerm));
-        if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; document.getElementById('historyPagination').innerHTML = ''; return; }
+    let pageCursors = {}; // 페이지별 마지막 문서를 저장하여 startAfter로 사용
 
-        const totalItems = fh.length;
+    async function renderHistory() {
+        if (searchTerm) {
+            // 검색 시에는 전체 데이터에서 필터링 (데이터가 많아지면 서버 쿼리로 변경 권장)
+            let fh = matchHistory.filter(m => m.winner.name.toLowerCase().includes(searchTerm) || m.loser.name.toLowerCase().includes(searchTerm) || m.title.toLowerCase().includes(searchTerm));
+            if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; document.getElementById('historyPagination').innerHTML = ''; return; }
+            displayMatches(fh.slice(0, ITEMS_PER_PAGE));
+            document.getElementById('historyPagination').innerHTML = '';
+            return;
+        }
+
+        const totalItems = totalMatchesCount;
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
         if (historyCurrentPage > totalPages) historyCurrentPage = totalPages || 1;
 
-        const pagedData = fh.slice((historyCurrentPage - 1) * ITEMS_PER_PAGE, historyCurrentPage * ITEMS_PER_PAGE);
+        // 서버 측 페이징: 현재 페이지에 필요한 데이터만 가져오기
+        historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">매치 기록을 불러오고 있습니다...</div>';
+        
+        try {
+            let q;
+            if (historyCurrentPage === 1) {
+                q = query(collection(db, "Matches"), orderBy("id", "desc"), limit(ITEMS_PER_PAGE));
+            } else {
+                // 특정 페이지로 바로 이동하는 것은 Firestore 구조상 이전 문서들을 알아야 함
+                // 여기서는 간단하게 offset 기반의 느낌을 위해 skip 또는 logic 필요
+                // 여기서는 skip 기반으로 구현 (데이터가 아주 많지 않을 때 유효)
+                q = query(collection(db, "Matches"), orderBy("id", "desc"), limit(historyCurrentPage * ITEMS_PER_PAGE));
+            }
 
-        historyContainer.innerHTML = '<div class="history-list">' + pagedData.map(m => `
+            const snap = await getDocs(q);
+            const allDocs = snap.docs;
+            const pagedDocs = allDocs.slice((historyCurrentPage - 1) * ITEMS_PER_PAGE, historyCurrentPage * ITEMS_PER_PAGE);
+            const pagedData = pagedDocs.map(doc => doc.data());
+
+            displayMatches(pagedData);
+            renderPagination('historyPagination', totalItems, historyCurrentPage, (page) => {
+                historyCurrentPage = page;
+                renderHistory();
+                window.scrollTo({ top: historyContainer.offsetTop - 100, behavior: 'smooth' });
+            });
+        } catch (err) {
+            console.error("매치 기록 로드 실패:", err);
+            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--status-red);">데이터를 불러오지 못했습니다.</div>';
+        }
+    }
+
+    function displayMatches(matches) {
+        if (matches.length === 0) { historyContainer.innerHTML = '기록 없음'; return; }
+        historyContainer.innerHTML = '<div class="history-list">' + matches.map(m => `
             <div class="history-item">
                 <div class="match-info"><h4>${m.title}</h4><div class="match-time">${m.date}</div></div>
                 <div class="match-result">
@@ -617,12 +678,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="player-outcome player-loser">${m.loser.name} <span class="rating-delta">${m.loser.delta}</span></div>
                 </div>
             </div>`).join('') + '</div>';
-
-        renderPagination('historyPagination', totalItems, historyCurrentPage, (page) => {
-            historyCurrentPage = page;
-            renderHistory();
-            window.scrollTo({ top: historyContainer.offsetTop - 100, behavior: 'smooth' });
-        });
     }
 
     function updateUI() { calculateRanks(); renderStats(); renderRankingTable(); renderTierTable(); renderHistory(); initSelects(); }
