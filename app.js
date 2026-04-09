@@ -324,16 +324,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const topRatingNameEl = document.getElementById('topRatingName');
     const historyCountEl = document.getElementById('historyCount');
 
-    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    
+    // 순위표/티어표는 실시간 검색 (로컬 데이터), 매치 기록은 엔터/버튼 시 서버 검색
     searchInput.addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
-        historyCurrentPage = 1;
-        adminHistoryCurrentPage = 1;
         renderTierTable();
         renderRankingTable();
-        renderHistory();
-        if (isAdminLoggedIn) renderAdminDashboard();
+        // 매치 기록은 실시간 검색 대신 버튼클릭/엔터로 동작하도록 관망
     });
+
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') conductHistorySearch();
+    });
+
+    searchBtn.onclick = conductHistorySearch;
 
     // 서버 데이터를 불러오기 전, 백업 데이터로 즉시 화면을 구성합니다.
     updateUI();
@@ -648,15 +653,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    let pageCursors = {}; // 페이지별 마지막 문서를 저장하여 startAfter로 사용
+    let pageCursors = {};
+    let isSearchingHistory = false;
+    let historySearchResults = [];
+
+    // --- 서버 측 검색 기능 구현 ---
+    async function conductHistorySearch() {
+        const term = searchInput.value.trim().toLowerCase();
+        if (!term) {
+            isSearchingHistory = false;
+            historySearchResults = [];
+            historyCurrentPage = 1;
+            renderHistory();
+            return;
+        }
+
+        historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">전체 기록에서 검색 중...</div>';
+        try {
+            // 인덱스 오류 방지를 위해 각각 검색 후 병합
+            const qWin = query(collection(db, "Matches"), where("winner.name", "==", term));
+            const qLoss = query(collection(db, "Matches"), where("loser.name", "==", term));
+            
+            const [winSnap, lossSnap] = await Promise.all([getDocs(qWin), getDocs(qLoss)]);
+            
+            historySearchResults = [
+                ...winSnap.docs.map(doc => doc.data()),
+                ...lossSnap.docs.map(doc => doc.data())
+            ].sort((a, b) => b.id - a.id);
+
+            isSearchingHistory = true;
+            historyCurrentPage = 1;
+            
+            // 검색 결과 렌더링
+            renderHistory();
+        } catch (err) {
+            console.error("검색 중 오류:", err);
+            historyContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--status-red);">검색 중 오류가 발생했습니다. (정확한 닉네임을 입력해 주세요)</div>';
+        }
+    }
 
     async function renderHistory() {
-        if (searchTerm) {
-            // 검색 시에는 전체 데이터에서 필터링 (데이터가 많아지면 서버 쿼리로 변경 권장)
-            let fh = matchHistory.filter(m => m.winner.name.toLowerCase().includes(searchTerm) || m.loser.name.toLowerCase().includes(searchTerm) || m.title.toLowerCase().includes(searchTerm));
-            if (fh.length === 0) { historyContainer.innerHTML = '기록 없음'; document.getElementById('historyPagination').innerHTML = ''; return; }
-            displayMatches(fh.slice(0, ITEMS_PER_PAGE));
-            document.getElementById('historyPagination').innerHTML = '';
+        if (isSearchingHistory) {
+            const totalItems = historySearchResults.length;
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            const pagedData = historySearchResults.slice((historyCurrentPage - 1) * ITEMS_PER_PAGE, historyCurrentPage * ITEMS_PER_PAGE);
+            
+            displayMatches(pagedData);
+            renderPagination('historyPagination', totalItems, historyCurrentPage, (page) => {
+                historyCurrentPage = page;
+                renderHistory();
+                window.scrollTo({ top: historyContainer.offsetTop - 100, behavior: 'smooth' });
+            });
             return;
         }
 
