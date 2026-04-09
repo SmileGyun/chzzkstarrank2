@@ -38,32 +38,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: "17", name: "Crunch", race: "Terran", rating: 1941, win: 0, loss: 1, prevRank: 14 },
         { id: "14", name: "SmileGyun", race: "Protoss", rating: 1892, win: 4, loss: 2, prevRank: 15 },
         { id: "16", name: "콩아내", race: "Protoss", rating: 1830, win: 1, loss: 2, prevRank: 16 },
-        { id: "15", name: "아모크 amock82", race: "Zerg", rating: 1810, win: 1, loss: 2, prevRank: 17 },
+        { id: "15", name: "아모크 amock82", race: "Zerg", rating: 1829, win: 3, loss: 2, prevRank: 17 },
         { id: "18", name: "은송아지", race: "Zerg", rating: 1772, win: 2, loss: 0, prevRank: 18 },
         { id: "19", name: "앙오예", race: "Terran", rating: 1735, win: 2, loss: 1, prevRank: 19 },
-        { id: "1775066951215", name: "Meister", race: "Random", rating: 1680, win: 8, loss: 7, prevRank: 20 },
+        { id: "1775066951215", name: "Meister", race: "Protoss", rating: 1661, win: 8, loss: 9, prevRank: 20 },
         { id: "20", name: "워모그JaX", race: "Zerg", rating: 1627, win: 9, loss: 10, prevRank: 21 },
         { id: "21", name: "라무쓰", race: "Terran", rating: 1602, win: 3, loss: 2, prevRank: 22 },
         { id: "22", name: "프로피", race: "Terran", rating: 1566, win: 4, loss: 13, prevRank: 23 },
         { id: "24", name: "찬울 Chanwool", race: "Terran", rating: 1526, win: 0, loss: 0, prevRank: 24 },
-        { id: "23", name: "망시", race: "Protoss", rating: 1508, win: 4, loss: 6, prevRank: 25 },
-        { id: "25", name: "최병곤", race: "Protoss", rating: 1508, win: 3, loss: 1, prevRank: 26 },
-        { id: "26", name: "운요로", race: "Zerg", rating: 1463, win: 4, loss: 1, prevRank: 27 },
-        { id: "31", name: "양거북", race: "Terran", rating: 1410, win: 8, loss: 7, prevRank: 28 },
-        { id: "27", name: "고보미", race: "Zerg", rating: 1407, win: 4, loss: 5, prevRank: 29 },
-        { id: "28", name: "카루하", race: "Terran", rating: 1403, win: 2, loss: 5, prevRank: 30 },
-        { id: "29", name: "시폰케이크", race: "Protoss", rating: 1331, win: 0, loss: 0, prevRank: 31 },
-        { id: "1775312955137", name: "복숭아가 좋은 효나", race: "Protoss", rating: 1296, win: 5, loss: 3, prevRank: 32 },
-        { id: "30", name: "비카Vika", race: "Zerg", rating: 1286, win: 1, loss: 2, prevRank: 33 },
-        { id: "32", name: "한초약", race: "Terran", rating: 1229, win: 1, loss: 0, prevRank: 34 },
-        { id: "34", name: "캐스커", race: "Protoss", rating: 1195, win: 3, loss: 0, prevRank: 35 },
-        { id: "37", name: "쿤", race: "Protoss", rating: 1163, win: 16, loss: 15, prevRank: 36 },
-        { id: "35", name: "릴라차", race: "Terran", rating: 1108, win: 0, loss: 0, prevRank: 37 },
-        { id: "36", name: "고라니는똥손", race: "Zerg", rating: 1064, win: 1, loss: 3, prevRank: 38 },
-        { id: "33", name: "실키아", race: "Zerg", rating: 1010, win: 6, loss: 22, prevRank: 39 },
-        { id: "1774791981829", name: "킴쿼카", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 40 },
-        { id: "1775463695260", name: "쏭이", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 41 },
-        { id: "38", name: "두두키", race: "Zerg", rating: 993, win: 0, loss: 4, prevRank: 42 }
+        { id: "25", name: "최병곤", race: "Protoss", rating: 1511, win: 4, loss: 1, prevRank: 25 },
+        { id: "23", name: "망시", race: "Protoss", rating: 1508, win: 4, loss: 6, prevRank: 26 },
+        { id: "26", name: "운요로", race: "Zerg", rating: 1480, win: 7, loss: 1, prevRank: 27 },
+        { id: "28", name: "카루하", race: "Terran", rating: 1414, win: 4, loss: 6, prevRank: 28 },
+        { id: "31", name: "양거북", race: "Terran", rating: 1410, win: 8, loss: 7, prevRank: 29 },
+        { id: "29", name: "시폰케이크", race: "Protoss", rating: 1398, win: 7, loss: 0, prevRank: 30 },
+        { id: "1775596540907", name: "피르시온", race: "Protoss", rating: 1365, win: 2, loss: 0, prevRank: 31 },
+        { id: "27", name: "고보미", race: "Zerg", rating: 1345, win: 5, loss: 10, prevRank: 32 },
+        { id: "1775596542282", name: "랑월", race: "Zerg", rating: 1299, win: 1, loss: 0, prevRank: 33 },
+        { id: "1775312955137", name: "복숭아가 좋은 효나", race: "Protoss", rating: 1287, win: 5, loss: 4, prevRank: 34 },
+        { id: "30", name: "비카Vika", race: "Zerg", rating: 1286, win: 1, loss: 2, prevRank: 35 },
+        { id: "32", name: "한초약", race: "Terran", rating: 1229, win: 1, loss: 0, prevRank: 36 },
+        { id: "34", name: "캐스커", race: "Protoss", rating: 1195, win: 3, loss: 0, prevRank: 37 },
+        { id: "37", name: "쿤", race: "Protoss", rating: 1145, win: 16, loss: 16, prevRank: 38 },
+        { id: "35", name: "릴라차", race: "Terran", rating: 1130, win: 2, loss: 7, prevRank: 39 },
+        { id: "36", name: "고라니는똥손", race: "Zerg", rating: 1064, win: 1, loss: 3, prevRank: 40 },
+        { id: "33", name: "실키아", race: "Zerg", rating: 1005, win: 7, loss: 27, prevRank: 41 },
+        { id: "1774791981829", name: "킴쿼카", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 42 },
+        { id: "1775463695260", name: "쏭이", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 43 },
+        { id: "1775581228225", name: "큐피짱", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 44 },
+        { id: "38", name: "두두키", race: "Zerg", rating: 993, win: 0, loss: 4, prevRank: 45 }
     ];
 
     const backupMatches = [
@@ -96,8 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- [태그 정의 데이터] ---
     const tagDefinitions = [
         { name: "SDC", color: "#fbbf24", members: ["채선트","코을","에뚜랑제","나브자크","SmileGyun","콩아내","앙오예","워모그JaX","프로피","전설의마왕9658"] },
-        { name: "치즈캠", color: "#faea48", members: ["실키아","릴라차","쿤","운요로","최병곤","순댕e"] },
-        { name: "뉴스동", color: "#34d399", members: [] },
+        { name: "치즈캠", color: "#faea48", members: ["실키아","쿤","운요로","최병곤","순댕e","릴라차","피르시온","랑월"] },
+        { name: "뉴스동", color: "#34d399", members: ["쏭이","킴쿼카","고보미"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","카루하","고보미"] }
     ];
@@ -214,6 +217,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             inquiries = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             if (isAdminLoggedIn) renderAdminDashboard();
         });
+
+        // --- 관리자 전용: 태그 데이터 유지보수 ---
+        onSnapshot(collection(db, "Tags"), (snapshot) => {
+            const allTagsDocs = snapshot.docs;
+            const currentTags = allTagsDocs.map(doc => doc.data());
+
+            // 1. 중복 태그 정리
+            const seenNames = new Set();
+            allTagsDocs.forEach(tDoc => {
+                const data = tDoc.data();
+                if (seenNames.has(data.name)) {
+                    deleteDoc(tDoc.ref);
+                } else {
+                    seenNames.add(data.name);
+                }
+            });
+
+            // 2. 필수 태그 자동 생성
+            const requiredTags = ["SDC", "뉴스동", "치즈캠"];
+            requiredTags.forEach(tagName => {
+                if (!currentTags.some(t => t.name === tagName)) {
+                    const def = tagDefinitions.find(d => d.name === tagName) || { name: tagName, color: "#94a3b8", members: [] };
+                    const docId = tagName.toLowerCase();
+                    setDoc(doc(db, "Tags", docId), { name: def.name, color: def.color, members: def.members || [] });
+                }
+            });
+        });
     }
 
     if (isAdminLoggedIn) {
@@ -221,32 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     onSnapshot(collection(db, "Tags"), (snapshot) => {
-        const allTagsDocs = snapshot.docs;
-        tags = allTagsDocs.map(doc => doc.data());
-        
-        // --- 중복 태그 정리 로직 ---
-        const seenNames = new Set();
-        allTagsDocs.forEach(tDoc => {
-            const data = tDoc.data();
-            if (seenNames.has(data.name)) {
-                // 이미 동일한 이름의 태그가 있으면 이 중복 문서는 삭제
-                deleteDoc(tDoc.ref);
-            } else {
-                seenNames.add(data.name);
-            }
-        });
-
-        // 필수 태그들이 Firestore에 없는 경우 자동 생성
-        const requiredTags = ["SDC", "뉴스동", "치즈캠"];
-        requiredTags.forEach(tagName => {
-            if (!tags.some(t => t.name === tagName)) {
-                const def = tagDefinitions.find(d => d.name === tagName) || { name: tagName, color: "#94a3b8", members: [] };
-                // 문서 ID는 소문자로 통일하여 중복 방지
-                const docId = tagName.toLowerCase();
-                setDoc(doc(db, "Tags", docId), { name: def.name, color: def.color, members: def.members || [] });
-            }
-        });
-
+        tags = snapshot.docs.map(doc => doc.data());
         renderRankingTable();
         if (isAdminLoggedIn) renderAdminDashboard();
     });
