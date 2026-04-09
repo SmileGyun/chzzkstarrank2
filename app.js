@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import {
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc,
     collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or,
     getDocsFromCache, getDocsFromServer
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
