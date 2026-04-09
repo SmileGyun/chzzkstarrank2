@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
 import {
-    initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, updateDoc, deleteDoc,
-    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or
+    collection, addDoc, onSnapshot, query, orderBy, getDocs, limit, increment, runTransaction, writeBatch, where, or,
+    getDocsFromCache, getDocsFromServer
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -171,12 +171,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- [실시간 리스너] ---
-    onSnapshot(collection(db, "Players"), (snapshot) => {
-        players = snapshot.docs.map(doc => ({ ...doc.data() }));
-        players.sort((a, b) => b.rating - a.rating);
-        updateUI();
-        if (isAdminLoggedIn) renderAdminDashboard();
-    });
+    // --- 선수 명단 캐싱 강화 (캐시 우선 로드) ---
+    async function loadPlayers() {
+        const playersRef = collection(db, "Players");
+        try {
+            // 1. 먼저 로컬 캐시에서 시도 (매우 빠름, 할당량 0)
+            const cacheSnap = await getDocsFromCache(playersRef);
+            if (!cacheSnap.empty) {
+                players = cacheSnap.docs.map(doc => doc.data());
+                players.sort((a, b) => b.rating - a.rating);
+                updateUI();
+            }
+        } catch (e) { console.log("캐시 데이터 없음, 서버에서 불러옵니다."); }
+
+        // 2. 서버에서 최신 데이터 감시 (onSnapshot 유지하되 변경사항만 반영)
+        onSnapshot(playersRef, (snapshot) => {
+            players = snapshot.docs.map(doc => ({ ...doc.data() }));
+            players.sort((a, b) => b.rating - a.rating);
+            updateUI();
+            if (isAdminLoggedIn) renderAdminDashboard();
+        });
+    }
+    loadPlayers();
 
     // 최신 매치 20개만 실시간으로 감시 (첫 페이지 라이브 반응용)
     onSnapshot(query(collection(db, "Matches"), orderBy("id", "desc"), limit(20)), (snapshot) => {
@@ -254,16 +270,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         initAdminListeners();
     }
 
-    onSnapshot(collection(db, "Tags"), (snapshot) => {
-        tags = snapshot.docs.map(doc => doc.data());
-        renderRankingTable();
-        if (isAdminLoggedIn) renderAdminDashboard();
-    });
+    // 태그 데이터는 1회만 호출 (할당량 정기 소모 방지)
+    async function loadTagsOnce() {
+        try {
+            const snap = await getDocs(collection(db, "Tags"));
+            tags = snap.docs.map(doc => doc.data());
+            renderRankingTable();
+            if (isAdminLoggedIn) renderAdminDashboard();
+        } catch (err) { console.error("태그 로드 실패:", err); }
+    }
+    loadTagsOnce();
 
-    onSnapshot(query(collection(db, "Notices"), orderBy("date", "desc"), limit(3)), (snapshot) => {
-        notices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        renderNotices();
-    });
+    // 공지사항 데이터는 1회만 호출 (할당량 정기 소모 방지)
+    async function loadNoticesOnce() {
+        try {
+            const snap = await getDocs(query(collection(db, "Notices"), orderBy("date", "desc"), limit(3)));
+            notices = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            renderNotices();
+        } catch (err) { console.error("공지사항 로드 실패:", err); }
+    }
+    loadNoticesOnce();
 
     onSnapshot(doc(db, "Settings", "system"), (snap) => {
         if (snap.exists()) {
