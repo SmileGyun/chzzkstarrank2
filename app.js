@@ -58,16 +58,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         { id: "1775596542282", name: "랑월", race: "Zerg", rating: 1299, win: 1, loss: 0, prevRank: 33 },
         { id: "1775312955137", name: "복숭아가 좋은 효나", race: "Protoss", rating: 1287, win: 5, loss: 4, prevRank: 34 },
         { id: "30", name: "비카Vika", race: "Zerg", rating: 1286, win: 1, loss: 2, prevRank: 35 },
-        { id: "32", name: "한초약", race: "Terran", rating: 1229, win: 1, loss: 0, prevRank: 36 },
-        { id: "34", name: "캐스커", race: "Protoss", rating: 1195, win: 3, loss: 0, prevRank: 37 },
-        { id: "37", name: "쿤", race: "Protoss", rating: 1145, win: 16, loss: 16, prevRank: 38 },
-        { id: "35", name: "릴라차", race: "Terran", rating: 1130, win: 2, loss: 7, prevRank: 39 },
-        { id: "36", name: "고라니는똥손", race: "Zerg", rating: 1064, win: 1, loss: 3, prevRank: 40 },
-        { id: "33", name: "실키아", race: "Zerg", rating: 1005, win: 7, loss: 27, prevRank: 41 },
-        { id: "1774791981829", name: "킴쿼카", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 42 },
-        { id: "1775463695260", name: "쏭이", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 43 },
-        { id: "1775581228225", name: "큐피짱", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 44 },
-        { id: "38", name: "두두키", race: "Zerg", rating: 993, win: 0, loss: 4, prevRank: 45 }
+        { id: "vk_control", name: "vk컨트롤", race: "Terran", rating: 1250, win: 0, loss: 0, prevRank: 36 },
+        { id: "32", name: "한초약", race: "Terran", rating: 1229, win: 1, loss: 0, prevRank: 37 },
+        { id: "34", name: "캐스커", race: "Protoss", rating: 1195, win: 3, loss: 0, prevRank: 38 },
+        { id: "37", name: "쿤", race: "Protoss", rating: 1145, win: 16, loss: 16, prevRank: 39 },
+        { id: "35", name: "릴라차", race: "Terran", rating: 1130, win: 2, loss: 7, prevRank: 40 },
+        { id: "36", name: "고라니는똥손", race: "Zerg", rating: 1064, win: 1, loss: 3, prevRank: 41 },
+        { id: "33", name: "실키아", race: "Zerg", rating: 1005, win: 7, loss: 27, prevRank: 42 },
+        { id: "1774791981829", name: "킴쿼카", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 43 },
+        { id: "1775463695260", name: "쏭이", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 44 },
+        { id: "1775581228225", name: "큐피짱", race: "Zerg", rating: 1000, win: 0, loss: 0, prevRank: 45 },
+        { id: "38", name: "두두키", race: "Zerg", rating: 993, win: 0, loss: 4, prevRank: 46 }
     ];
 
     const backupMatches = [
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- [태그 정의 데이터] ---
     const tagDefinitions = [
         { name: "SDC", color: "#fbbf24", members: ["채선트","코을","에뚜랑제","나브자크","SmileGyun","콩아내","앙오예","워모그JaX","프로피","전설의마왕9658"] },
-        { name: "치즈캠", color: "#faea48", members: ["실키아","쿤","운요로","최병곤","순댕e","릴라차","피르시온","랑월"] },
+        { name: "치즈캠", color: "#faea48", members: ["실키아","쿤","운요로","최병곤","순댕e","릴라차","피르시온","랑월","vk컨트롤"] },
         { name: "뉴스동", color: "#34d399", members: ["쏭이","킴쿼카","고보미"] },
         { name: "스악귀", color: "#ff0000", members: ["나브자크"] },
         { name: "스진동", color: "#60a5fa", members: ["하늘루틴","엄크술사","아모크 ammock82","아모크 amock82","은송아지","라무쓰","망시","찬울 Chanwool","카루하","고보미"] }
@@ -244,6 +245,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const allTagsDocs = snapshot.docs;
             const currentTags = allTagsDocs.map(doc => doc.data());
 
+            // 전역 tags 배열 업데이트 (실시간 반영)
+            tags = currentTags;
+            renderRankingTable();
+            renderAdminDashboard();
+
             // 1. 중복 태그 정리
             const seenNames = new Set();
             allTagsDocs.forEach(tDoc => {
@@ -271,16 +277,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         initAdminListeners();
     }
 
-    // 태그 데이터는 1회만 호출 (할당량 정기 소모 방지)
-    async function loadTagsOnce() {
-        try {
-            const snap = await getDocs(collection(db, "Tags"));
-            tags = snap.docs.map(doc => doc.data());
-            renderRankingTable();
-            if (isAdminLoggedIn) renderAdminDashboard();
-        } catch (err) { console.error("태그 로드 실패:", err); }
-    }
-    loadTagsOnce();
+    // 태그 데이터 실시간 리스너 (기본)
+    onSnapshot(collection(db, "Tags"), (snapshot) => {
+        tags = snapshot.docs.map(doc => doc.data());
+        renderRankingTable();
+        if (isAdminLoggedIn) renderAdminDashboard();
+    });
 
     // 공지사항 데이터는 1회만 호출 (할당량 정기 소모 방지)
     async function loadNoticesOnce() {
